@@ -8,11 +8,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # installation
+Using a version off a branch
+
+```{r, eval=FALSE}
+remotes::install_github("traitecoevo/plant@ff16r")
+```
+
 
 ```{r load libraries}
-devtools::load_all()
-
-# library(plant)
+library(plant)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -25,87 +29,146 @@ Activate logger
 plant_log_console()
 ```
 
-By pulling out the 'species' object from our list of tidied result outputs, we can plot the size distribution for each of the species in the patch. In this plot, each line represents the height over time of a characteristic originating at a given height (given by seed mass) at each step. Note that steps in this case are not equivalent to years, where the distance between steps is instead determined by the cohort spacing algorithm. We can take advantage of varying line transparency in ggplot2 to plot the relative log(Density) of each characteristic the size distribution of each species in the pathc. 
+
+## Errors in: 1. expand_state, 2. area_leaf not found and min_h instead of height in data_species_tot?
 
 ```{r}
-results_tidy$species %>%
+run_mypatch_edit <- function(
+  traits =  trait_matrix(c(0.07), c("lma")),
+  p0 = scm_base_parameters("FF16", "FF16_Env"),
+  find_equilbrium = FALSE
+  ) {
+  
+  p1 <- expand_parameters(traits, p0, mutant = FALSE)
+  results <- build_schedule(p1)
+  out <- run_scm_collect(results)
+}
+
+results_decay <- 
+  run_mypatch_edit()
+
+results_decay_tidy <- 
+  results_decay %>% 
+  tidy_patch()
+
+## expand_state error
+results_tidy_expand <- results_decay_tidy %>% expand_state()
+
+data_species_tot <- 
+  results_decay_tidy$species %>% patch_species_total()
+
+## area_leaf not found & min_h ?
+data_species_tot %>%
+  ggplot(aes(time, area_leaf)) +
+  geom_line()
+
+```
+
+
+
+
+in results_tidy$p0$strategy_default$control, experimenting with:
+
+ode_tol_rel and ode_tol_abs ^-0.6
+schedule_eps 0.001 
+--> these vary the spacing width in the trapezium integration for the steps output - how wide (time periods) are the trapeziums we're integrating for our ODEs to get total numbers for individual's height growth etc? 
+
+-- what do above values represent...
+
+compare lower and higher values
+plot leaf area line versions with different values and same plot with the multiple lines to see how different values are changing stuff not the "saw-tooth" sharp points, resolve better
+
+
+```{r}
+
+## need to change control parameter values and exponential decay seed rain
+## Control parameters that tune various aspects of the numerical solvers --> Control(..., values = list(...)) can I change these a simpler way besides specifying as arguments to vary?? Put in run_mypatch_edit?
+## scm_base_params has lower accuracy + more noisy? p0 <- FF16_Parameters() ?? 
+
+#Also FF16 vs FF16r?? Specify FF16_env or no?? Default env?
+ 
+#Also - seed rain decay value - if too high this affects the height/density trajectory of the initial wave of individuals, what does the exponential decay function look like, how to set value that only affects cohorts after initial wave has emerged?
+
+base_params <- function(oderel = 1e-6, odeabs=1e-6, scheps = 0.001, rec_decay = 0) {
+ 
+  p0 <- scm_base_parameters("FF16")
+ 
+  p0$strategy_default$lma <- 0.07
+  p0$strategy_default$hmat <- 15
+  p0$strategy_default$rho <- 700
+  p0$strategy_default$a_l1 <- 2.17
+  p0$strategy_default$a_l2 <- 0.5
+  
+  p0$strategy_default$recruitment_decay <- rec_decay
+  
+  p0$strategy_default$control$ode_tol_rel <- oderel
+  p0$strategy_default$control$ode_tol_abs <- odeabs
+  p0$strategy_default$control$schedule_eps <- scheps
+  
+  p0
+}
+
+```
+
+```{r}
+
+#run patch with seed rain exponential decay -- make a minimalist working example -- remove uneccesary stuff so recreates the error, can separate out from everything else, isolate problem and fix
+run_mypatch_edit <- function(
+  traits =  trait_matrix(c(0.07), c("lma")),
+  B_lf1 = 1,
+  seed_rain = 20,
+  p0 = base_params(),
+  find_equilbrium = FALSE,
+  latitude = 28.182
+  ) {
+  
+  hyper_par_fn = make_FF16_hyperpar(B_lf1 = B_lf1, latitude = latitude)
+  p1 <- expand_parameters(traits, p0, hyper_par_fn, mutant = FALSE)
+  p1$seed_rain = seed_rain
+  results <- build_schedule(p1)
+  out <- run_scm_collect(results)
+
+}
+
+```
+
+
+```{r}
+##seed_rain * exp(-decay*time) time in years
+
+##create patch
+results_decay <- 
+  run_mypatch_edit(traits=trait_matrix(c(0.07), c("lma")), p0 = base_params(1e-7, 1e-7, 0.005, 5))
+
+#tidy the results
+results_decay_tidy <- 
+  results_decay %>% 
+  tidy_patch()
+
+#expand state to capture additional state variables (e.g.leaf area)
+results_tidy_expand <- results_decay_tidy %>% expand_state()
+
+#integrate to calculate species totals
+data_species_tot <- 
+  results_decay_tidy$species %>% patch_species_total()
+
+```
+
+
+```{r}
+
+#plot size distribution over time
+results_decay_tidy$species %>%
   drop_na() %>%
 plot_size_distribution_patch()
-```
 
-
-## Calculate totals by species for each step
-
-For each species, we can integrate over the height distribution to get the total value of the state variable per $m^2$
-
-```{r}
-data_species_tot <- 
-  results_tidy$species %>% patch_species_total()
-
-data_species_tot
-```
-
-For example, the number of individuals per $m^2$ is found by integrating the density of each characteristic at a given step over height.
-
-```{r}
-data_species_tot %>% 
-  ggplot(aes(time, individuals, colour=species)) +
+## plot LA over time -- why no change with ode_tol_rel/abs & schedule_eps ?
+ data_species_tot %>%
+  ggplot(aes(time, area_leaf)) +
   geom_line()
+ 
 ```
 
-We can use the function 'expand_state' to capture a large number of additional state variables (e.g.leaf area)
-
-```{r}
-results_tidy_expand <- results_tidy %>% expand_state()
-
-results_tidy_expand$species
-```
-
-In the same way as individuals above, we can have a look at the total leaf area over time by integrating across the size (i.e. height) distribution for a given step or time. This involves finding the product of the density of each of the characteristics present multiplied by the state variable in question (i.e. leaf area) before integrating across height. 
-
-```{r}
-data_species_tot <- 
-  results_tidy_expand$species %>% patch_species_total()
-
-data_species_tot %>% 
-  ggplot(aes(time, area_leaf, colour=species)) +
-  geom_line()
-```
-
-
-In this case, species 1 with cheap, thin leaves briefly has a much higher total leaf area deployed compared across the height distribution before eventually being overtaken by species with thicker, more expensive leaves. 
-
-
-```{r}
-data_species_tot %>% 
-  ggplot(aes(time, area_leaf, colour=species)) +
-  geom_line()
-```
-
-We can convert these integrated total state variables into their respective biomass components to get an idea of how total biomass and relative biomass allocation varies through time for each species. 
-
-```{r}
-v <- c("mass_heartwood", "mass_sapwood", "mass_bark", "mass_leaf")
-
-data_long <- 
-  data_species_tot %>% 
-  select(time,species, one_of(v)) %>%
-  pivot_longer(cols=starts_with("mass"), names_to = "tissue")
-
-data_long$tissue <- factor(data_long$tissue, levels = v)
-
-species_names <- tibble(species = unique(data_long$species),
-                      species_name = c("Species_1","Species_2"))
-
-data_long %>%
-  left_join(species_names) %>%
-  ggplot(aes(time, value, fill=tissue)) +
-  geom_area() +
-  labs(x = "Patch age (yr)", y = "Above ground mass (kg/m2)") +
-  theme_classic() + 
-  xlim(c(0,100)) +
-  facet_wrap(~species_name)
-```
 
 
 ## Classic Self thinnning plot
@@ -113,34 +176,6 @@ data_long %>%
 For this we need average size over time. Get average size by dividing total by the sum of individuals per unit area
 
 Note this plot has some noise in it. Suggests integration in previous step may need more resolution, or a better method. 
-
-```{r}
-
-data_species_tot <- 
-  results_tidy_expand$species %>% patch_species_total()
-
-p1 <- results_tidy_expand$species %>% plot_size_distribution_patch() 
-p2 <- 
-  data_species_tot %>%
-  filter(species==1) %>%
-  mutate(area_stem_av = area_stem / individuals) %>% 
-  ggplot(aes(area_stem_av, individuals, colour=species)) +
-  geom_line() +
-  scale_x_log10() +
-  scale_y_log10() + 
-  theme_classic()
-
-p1 + p2
-
-results_tidy_expand$species %>% filter(height > 1, time> 20, time<50) %>% 
-  patch_species_total() %>%
-  mutate(area_stem_av = area_stem / individuals) %>% 
-  ggplot(aes(area_stem_av, individuals, colour=species)) +
-  geom_line() +
-  scale_y_log10() +
-  scale_x_log10() + 
-  theme_classic()
-```
 
 Note, get cleaner results if use first cohorts
 
@@ -237,111 +272,6 @@ ggplot(aes(height, density, colour=time, group=time)) +
 results_tidy_expand$species %>% filter(species==1) %>% plot_size_distribution_patch()   
 
 
-```
-
-
-
-## BECCA'S WORK
-
-in results_tidy$p0$strategy_default$control, experimenting with:
-
-ode_tol_rel and ode_tol_abs ^-0.6
-schedule_eps 0.001 
---> these vary the spacing width in the trapezium integration for the steps output - how wide (time periods) are the trapeziums we're integrating for our ODEs to get total numbers for individual's height growth etc? 
-
--- what do above values represent...
-
-compare lower and higher values
-plot leaf area line versions with different values and same plot with the multiple lines to see how different values are changing stuff not the "saw-tooth" sharp points, resolve better
-
-
-```{r}
-
-## need to change control parameter values and exponential decay seed rain
-## Control parameters that tune various aspects of the numerical solvers --> Control(..., values = list(...)) can I change these a simpler way besides specifying as arguments to vary?? Put in run_mypatch_edit?
-## scm_base_params has lower accuracy + more noisy? p0 <- FF16_Parameters() ?? 
-
-#Also FF16 vs FF16r?? Specify FF16_env or no?? Default env?
- 
-#Also - seed rain decay value - if too high this affects the height/density trajectory of the initial wave of individuals, what does the exponential decay function look like, how to set value that only affects cohorts after initial wave has emerged?
-
-base_params <- function(oderel = 1e-6, odeabs=1e-6, scheps = 0.001, rec_decay = 0) {
- 
-  p0 <- scm_base_parameters("FF16r")
- 
-  p0$strategy_default$lma <- 0.07
-  p0$strategy_default$hmat <- 15
-  p0$strategy_default$rho <- 700
-  p0$strategy_default$a_l1 <- 2.17
-  p0$strategy_default$a_l2 <- 0.5
-  
-  p0$strategy_default$recruitment_decay <- rec_decay
-  
-  p0$strategy_default$control$ode_tol_rel <- oderel
-  p0$strategy_default$control$ode_tol_abs <- odeabs
-  p0$strategy_default$control$schedule_eps <- scheps
-  
-  p0
-}
-
-```
-
-```{r}
-
-#run patch with seed rain exponential decay
-run_mypatch_edit <- function(
-  traits =  trait_matrix(c(0.07), c("lma")),
-  B_lf1 = 1,
-  p0 = base_params(),
-  find_equilbrium = FALSE,
-  latitude = 28.182
-  ) {
-  
-  hyper_par_fn = make_FF16_hyperpar(B_lf1 = B_lf1, latitude = latitude)
-  p1 <- expand_parameters(traits, p0, hyper_par_fn, mutant = FALSE)
-  env <- make_environment("FF16r")     ##why used FF16r?
-  ctrl <- scm_base_control()
-  out <- run_scm_collect(p1, env, ctrl)
-
-
-}
-
-```
-
-
-```{r}
-
-##create patch
-results_decay <- 
-  run_mypatch_edit(traits=trait_matrix(c(0.07), c("lma")), p0 = base_params(1e-7, 1e-7, 0.005, 5))
-
-#tidy the results
-results_decay_tidy <- 
-  results_decay %>% 
-  tidy_patch()
-
-#expand state to capture additional state variables (e.g.leaf area)
-results_tidy_expand <- results_decay_tidy %>% expand_state()
-
-#integrate to calculate species totals
-data_species_tot <- 
-  results_tidy_expand$species %>% patch_species_total()
-
-```
-
-
-```{r}
-
-#plot size distribution over time
-results_decay_tidy$species %>%
-  drop_na() %>%
-plot_size_distribution_patch()
-
-## plot LA over time -- why no change with ode_tol_rel/abs & schedule_eps ?
- data_species_tot %>%
-  ggplot(aes(time, area_leaf)) +
-  geom_line()
- 
 ```
 
 
@@ -618,11 +548,23 @@ data_combined_long %>%
 ```
 
 
-## Sampling from population
+By pulling out the 'species' object from our list of tidied result outputs, we can plot the size distribution for each of the species in the patch. In this plot, each line represents the height over time of a characteristic originating at a given height (given by seed mass) at each step. Note that steps in this case are not equivalent to years, where the distance between steps is instead determined by the cohort spacing algorithm. We can take advantage of varying line transparency in ggplot2 to plot the relative log(Density) of each characteristic the size distribution of each species in the pathc. 
 
-(not implemented)
+## Calculate totals by species for each step
+
+For each species, we can integrate over the height distribution to get the total value of the state variable per $m^2$
+
+For example, the number of individuals per $m^2$ is found by integrating the density of each characteristic at a given step over height.
 
 ```{r}
-sample_size_distribution(tidy_species_data, patch_area)
+data_species_tot %>% 
+  ggplot(aes(time, individuals, colour=species)) +
+  geom_line()
 ```
 
+We can use the function 'expand_state' to capture a large number of additional state variables (e.g.leaf area)
+
+In the same way as individuals above, we can have a look at the total leaf area over time by integrating across the size (i.e. height) distribution for a given step or time. This involves finding the product of the density of each of the characteristics present multiplied by the state variable in question (i.e. leaf area) before integrating across height. 
+
+
+In this case, species 1 with cheap, thin leaves briefly has a much higher total leaf area deployed compared across the height distribution before eventually being overtaken by species with thicker, more expensive leaves. 
