@@ -8,11 +8,15 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # installation
+Using a version off a branch
+
+```{r, eval=FALSE}
+remotes::install_github("traitecoevo/plant@ff16r")
+```
+
 
 ```{r load libraries}
-devtools::load_all()
-
-# library(plant)
+library(plant)
 library(dplyr)
 library(tidyr)
 library(ggplot2)
