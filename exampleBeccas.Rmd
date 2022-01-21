@@ -67,6 +67,8 @@ data_species_tot %>%
 
 
 
+
+
 in results_tidy$p0$strategy_default$control, experimenting with:
 
 ode_tol_rel and ode_tol_abs ^-0.6
