@@ -160,7 +160,7 @@ grow_tidy_expand_totals <- function(oderel=1e-6, odeabs=1e-6, scheps=0.001, rec_
   
 }
 
-#need to put output into separate data frames
+#need to put output into separate data frames if using with sequence (below)
 
 allsteps <- grow_tidy_expand_totals(1e-6, 1e-6, 0.005, 0)
 
@@ -176,7 +176,7 @@ allsteps %>%
 ```{r}
 ## vary ODE tolerance & plot LA vs time results
 
-ode_tol_values <- seq(1e-7, 1e-4, by=10) %>% map_dfr(~grow_tidy_expand_totals(oderel = .x))
+ode_tol_values <- seq(1e-7, 1e-4, by=10) %>% map(~grow_tidy_expand_totals(oderel = .x))
 #why not whole sequence working like below?
 
 ode_tol_values %>% ggplot()
@@ -184,8 +184,7 @@ ode_tol_values %>% ggplot()
 
 ## vary schedule eps & plot LA vs time results
 
-sch_eps_values <- seq(0.001, 0.007, by=0.002) %>% map_dfr(~grow_tidy_expand_totals(scheps = .x))
-#need to split the output into separate data frames not one long one
+sch_eps_values <- seq(0.001, 0.007, by=0.002) %>% map(~grow_tidy_expand_totals(scheps = .x))
 
 sch_eps_values %>% ggplot(aes(time, area_leaf)) + geom_line()
 
@@ -210,6 +209,17 @@ sch_eps_7 <- grow_tidy_expand_totals(scheps=1e-7)
 sch_eps_7 %>% ggplot(aes(time, area_leaf)) + geom_line()
 ```
 
+
+```{r}
+results_tidy_expand$species %>% filter(height > 1, time> 20, time<50) %>% 
+  patch_species_total() %>%
+  mutate(area_stem_av = area_stem / individuals) %>% 
+  ggplot(aes(area_stem_av, individuals, colour=species)) +
+  geom_line() +
+  scale_y_log10() +
+  scale_x_log10() + 
+  theme_classic()
+```
 
 
 ## Self-thinning -- background info
@@ -348,6 +358,8 @@ results_tidy_expand$species %>%
   ungroup() %>%
   ggplot(aes(time, density)) + geom_line()
 ```
+
+
 
 
 
