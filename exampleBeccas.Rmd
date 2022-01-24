@@ -96,15 +96,16 @@ run_mypatch_edit <- function(
 
 ```{r}
 ##seed_rain*exp(-decay*time) time in years --> what does the exponential decay look like?
-seed_rain_decay <- function(seedrain = 100, decay = 0, time){
-  time = seq(0, 100, by=1)
-  seedrain*exp(-decay*time)
+seed_rain_decay <- function(seedrain = 100, decay = 0, time = seq(0, 10, by=0.01)){
+  tibble(
+    time = time,
+    seeds = seedrain*exp(-decay*time)
+  )
 }
 
-seed_rain_decay(1000,5) %>% as_tibble() %>% 
-  rename("seeds" = value) %>% mutate("year" = seq(0, 100, by=1)) %>%
-  ggplot(aes(year, seeds)) +
-  geom_line()
+seed_rain_decay(100,5) %>%
+  ggplot(aes(time, seeds)) +
+  geom_line() 
 
 ```
 
