@@ -120,7 +120,7 @@ results_decay6 <-
 
 #tidy the results
 results_decay_tidy <- 
-  results_decay5 %>% 
+  results_decay6 %>% 
   tidy_patch()
 
 #expand state to capture additional state variables (e.g.leaf area)
