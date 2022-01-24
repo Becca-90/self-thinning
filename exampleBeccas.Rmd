@@ -212,6 +212,8 @@ sch_eps_7 %>% ggplot(aes(time, area_leaf)) + geom_line()
 
 ```{r}
 allsteps %>% filter(height > 1) %>% 
+results_tidy_expand$species %>% filter(height > 1, time> 20, time<50) %>% 
+  patch_species_total() %>%
   mutate(area_stem_av = area_stem / individuals) %>% 
   ggplot(aes(area_stem_av, individuals, colour=species)) +
   geom_line() +
