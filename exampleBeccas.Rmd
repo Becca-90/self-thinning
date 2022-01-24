@@ -160,9 +160,9 @@ grow_tidy_expand_totals <- function(oderel=1e-6, odeabs=1e-6, scheps=0.001, rec_
   
 }
 
-#need to put output into separate data frames
+#need to put output into separate data frames if using with sequence (below)
 
-allsteps <- grow_tidy_expand_totals(1e-6, 1e-6, 0.005, 0)
+allsteps <- grow_tidy_expand_totals(1e-6, 1e-6, 0.005, 5)
 
 allsteps %>%
   ggplot(aes(time, area_leaf)) +
@@ -176,7 +176,7 @@ allsteps %>%
 ```{r}
 ## vary ODE tolerance & plot LA vs time results
 
-ode_tol_values <- seq(1e-7, 1e-4, by=10) %>% map_dfr(~grow_tidy_expand_totals(oderel = .x))
+ode_tol_values <- seq(1e-7, 1e-4, by=10) %>% map(~grow_tidy_expand_totals(oderel = .x))
 #why not whole sequence working like below?
 
 ode_tol_values %>% ggplot()
@@ -184,8 +184,7 @@ ode_tol_values %>% ggplot()
 
 ## vary schedule eps & plot LA vs time results
 
-sch_eps_values <- seq(0.001, 0.007, by=0.002) %>% map_dfr(~grow_tidy_expand_totals(scheps = .x))
-#need to split the output into separate data frames not one long one
+sch_eps_values <- seq(0.001, 0.007, by=0.002) %>% map(~grow_tidy_expand_totals(scheps = .x))
 
 sch_eps_values %>% ggplot(aes(time, area_leaf)) + geom_line()
 
@@ -210,6 +209,16 @@ sch_eps_7 <- grow_tidy_expand_totals(scheps=1e-7)
 sch_eps_7 %>% ggplot(aes(time, area_leaf)) + geom_line()
 ```
 
+
+```{r}
+allsteps %>% filter(height > 1) %>% 
+  mutate(area_stem_av = area_stem / individuals) %>% 
+  ggplot(aes(area_stem_av, individuals, colour=species)) +
+  geom_line() +
+  scale_y_log10() +
+  scale_x_log10() + 
+  theme_classic()
+```
 
 
 ## Self-thinning -- background info
@@ -353,6 +362,8 @@ results_tidy_expand$species %>%
 
 
 
+
+
 # Work in progress why is there noise in the self thinning relationship
 
 ```{r}
@@ -457,156 +468,3 @@ data_species_tot %>%
   theme_classic()
 
 ```
-
-
-
-```{r}
-grow_indv_time <- function(environment=1.0, times=seq(0,50,length.out=101)) {
-  
-  ff16_strategy <- FF16_Strategy()
-  indv_FF16 <- FF16_Individual(s = ff16_strategy)
-  env <- FF16_fixed_environment(environment)
-  grow_plant_results <- grow_plant_to_time(indv_FF16, times, env)
-  cbind(time = grow_plant_results$time, grow_plant_results$state) %>%
-    as_tibble() %>% mutate(env=environment)
-}
-
-
-grow_plant_results <- grow_indv_time(env=0.75)
-
-
-plot_indv_time <- function(data) {
-  ggplot(data, aes(x = time, y = height)) +
-  geom_line() 
-}
-
-
-plot_indv_time(grow_plant_results)
-
-
-grow_and_plot <- function(...){
-  grow_plant_results <- grow_indv_time(...)
-  plot_indv_time(grow_plant_results)
-}
-
-
-
-```
-
-
-
-The cohort spacing algorithm determines the optimum introduction times for characteristics, which means that the time values associated with steps may not correspond to known times that we might like to extract information about. For example, what the total amount of biomass per $m^2$ be at 50 years. By doing this, it also means that we can integrate between defined times.
-
-
-```{r}
-results <- run_mypatch(traits =  trait_matrix(c(0.07, 0.24), c("lma")))
-
-results_tidy <- results %>%
-  tidy_patch()
-
-```
-
-
-Lets interpolate our results from the run_mypatch above for timepoints 1,5,10, 1000. Note that time in unit years. 
-
-```{r}
-times <- c(1, 5, 10, 1000)
-
-tidy_species_data <- results_tidy$species
-
-tidy_species_new <- interpolate_to_times(tidy_species_data, times)
-
-```
-
-Gives interpolated values for state variables at new time points. 
-
-```{r}
-tidy_species_new
-```
-
-We can now assess their correspondence with the values already predicted in the original results output. We can see in this case that the points (represneting the interpolated values) fall along the curves which indicates good correspondence bewteen our interpolation and the original simulation. 
-
-```{r}
-data_combined <- 
-  tidy_species_data %>%
-  bind_rows(tidy_species_new) %>%
-  arrange(species, cohort, time) %>% 
-  filter(cohort %in% seq(1, 101, by=20))
-
-data_combined_long <- 
-  data_combined  %>% 
-  select(cohort, time, step, density, height, species) %>% 
-  pivot_longer(cols = c("density", "height"))
-
-data_combined_long %>% 
-  ggplot(aes(time, value, group=cohort,colour=cohort)) +
-  geom_line() +
-  geom_point(data = data_combined_long %>% filter(is.na(step)), col=2) +
-  scale_y_log10() +
-  xlim(c(0, 20)) +
-  facet_grid(name~species, scales="free") +
-  theme_classic()
-```
-
-## Interpolate to heights
-
-Similar to above, can interpolate across cohorts at given time to sepcific heights
-
-```{r}
-heights <- c(1, 5, 10)
-
-tidy_species_data <- results_tidy$species
-
-tidy_species_new <- interpolate_to_heights(tidy_species_data, heights)
-```
-
-Gives predictions at new time points. 
-
-```{r}
-tidy_species_new %>% drop_na()
-```
-
-To see how good these are, plot together with old points
-
-```{r}
-data_combined <- 
-  tidy_species_data %>%
-  bind_rows(tidy_species_new) %>%
-  arrange(species, time, height) %>% 
-  filter(step %in% c(100, 150))
-
-data_combined_long <- 
-  data_combined  %>% 
-  select(cohort, time, step, height, density, mortality, area_heartwood, species) %>% 
-  pivot_longer(cols = c("density", "mortality", "area_heartwood"))
-
-data_combined_long %>% 
-    filter(!is.na(cohort)) %>% 
-  ggplot() +
-  geom_line(aes(height, value, group=step, colour=step)) +
-  geom_point(data = data_combined_long %>% filter(is.na(cohort)), aes(x=height, y=value), col="red")+
-  facet_grid(name~species, scales="free") +
-  theme_classic()
-```
-
-
-By pulling out the 'species' object from our list of tidied result outputs, we can plot the size distribution for each of the species in the patch. In this plot, each line represents the height over time of a characteristic originating at a given height (given by seed mass) at each step. Note that steps in this case are not equivalent to years, where the distance between steps is instead determined by the cohort spacing algorithm. We can take advantage of varying line transparency in ggplot2 to plot the relative log(Density) of each characteristic the size distribution of each species in the pathc. 
-
-## Calculate totals by species for each step
-
-For each species, we can integrate over the height distribution to get the total value of the state variable per $m^2$
-
-For example, the number of individuals per $m^2$ is found by integrating the density of each characteristic at a given step over height.
-
-```{r}
-data_species_tot %>% 
-  ggplot(aes(time, individuals, colour=species)) +
-  geom_line()
-```
-
-We can use the function 'expand_state' to capture a large number of additional state variables (e.g.leaf area)
-
-In the same way as individuals above, we can have a look at the total leaf area over time by integrating across the size (i.e. height) distribution for a given step or time. This involves finding the product of the density of each of the characteristics present multiplied by the state variable in question (i.e. leaf area) before integrating across height. 
-
-
-In this case, species 1 with cheap, thin leaves briefly has a much higher total leaf area deployed compared across the height distribution before eventually being overtaken by species with thicker, more expensive leaves. 
