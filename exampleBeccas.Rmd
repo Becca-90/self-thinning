@@ -212,8 +212,7 @@ sch_eps_7 %>% ggplot(aes(time, area_leaf)) + geom_line()
 
 
 
-
-## Self-thinning -- background 
+## Self-thinning -- background info
 Obtaining the Self-Thinning Line from a size structured non-finite population growing through time
 
 
