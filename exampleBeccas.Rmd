@@ -58,10 +58,6 @@ base_params <- function(oderel = 1e-6, odeabs=1e-6, scheps = 0.001, rec_decay = 
   
   p0$strategy_default$recruitment_decay <- rec_decay
   
-  p0$strategy_default$control$ode_tol_rel <- oderel
-  p0$strategy_default$control$ode_tol_abs <- odeabs
-  p0$strategy_default$control$schedule_eps <- scheps
-  
   p0
 }
 
@@ -77,16 +73,17 @@ run_mypatch_edit <- function(
   B_lf1 = 1,
   seed_rain = 20,
   p0 = base_params(),
-  find_equilbrium = FALSE,
+  ctrl=scm_base_control(),
   latitude = 28.182
   ) {
   
   hyper_par_fn = make_FF16_hyperpar(B_lf1 = B_lf1, latitude = latitude)
   p1 <- expand_parameters(traits, p0, hyper_par_fn, mutant = FALSE)
   p1$seed_rain = seed_rain
-  results <- build_schedule(p1)
-  out <- run_scm_collect(results)
+  results <- build_schedule(p1, ctrl = ctrl)
+  out <- run_scm_collect(results, ctrl=ctrl)
 
+  out
 }
 
 ```
@@ -116,7 +113,7 @@ seed_rain_decay(100,5) %>%
 
 ##create patch
 results_decay6 <- 
-  run_mypatch_edit(p0 = base_params(1e-6, 1e-6, 0.001, 0)) 
+  run_mypatch_edit()
 
 #tidy the results
 results_decay_tidy <- 
@@ -124,11 +121,11 @@ results_decay_tidy <-
   tidy_patch()
 
 #expand state to capture additional state variables (e.g.leaf area)
-results_tidy_expand <- results_decay_tidy %>% expand_state()
+results_tidy_expand <- results_decay_tidy %>% FF16_expand_state()
 
 #integrate to calculate species totals
 data_species_tot <- 
-  results_tidy_expand$species %>% patch_species_total()
+  results_tidy_expand$species %>% integrate_over_size_distribution()
 
 ```
 
@@ -138,7 +135,7 @@ data_species_tot <-
 #plot size distribution over time
 results_decay_tidy$species %>%
   drop_na() %>%
-plot_size_distribution_patch()
+plot_size_distribution()
 
 ## plot LA over time
  data_species_tot %>%
@@ -152,18 +149,30 @@ plot_size_distribution_patch()
 
 ```{r}
 
-grow_tidy_expand_totals <- function(oderel=1e-6, odeabs=1e-6, scheps=0.001, rec_decay=0) {
-  p = base_params(oderel, odeabs, scheps, rec_decay)
-  patch <- run_mypatch_edit(p0 = p)
+grow_tidy_expand_totals <- function(oderel=1e-4, odeabs=1e-4, scheps=0.005, rec_decay=0) {
+  
+  
+  ctrl = scm_base_control()
+  
+  ctrl$ode_tol_rel <- oderel
+  ctrl$ode_tol_abs <- odeabs
+  ctrl$schedule_eps <- scheps
+
+  p = base_params(rec_decay)
+  patch <- run_mypatch_edit(p0 = p, ctrl = ctrl)
   patch_tidy <- tidy_patch(patch)
-  patch_expand <- expand_state(patch_tidy)
-  patch_totals <- patch_species_total(patch_expand$species)
+  patch_expand <- FF16_expand_state(patch_tidy)
+  patch_totals <- integrate_over_size_distribution(patch_expand$species)
   
 }
 
 #need to put output into separate data frames
 
-allsteps <- grow_tidy_expand_totals(1e-6, 1e-6, 0.005, 0)
+# default
+allsteps <- grow_tidy_expand_totals(1e-4, 1e-4, 0.005, 0)
+
+#hiegher resolution
+allsteps <- grow_tidy_expand_totals(1e-5, 1e-5, 0.0001, 0)
 
 allsteps %>%
   ggplot(aes(time, area_leaf)) +
@@ -175,40 +184,14 @@ allsteps %>%
 ## varied ODE tolerance rel/abs and schedule eps
 
 ```{r}
-## vary ODE tolerance & plot LA vs time results
-
-ode_tol_values <- seq(1e-7, 1e-4, by=10) %>% map_dfr(~grow_tidy_expand_totals(oderel = .x))
-#why not whole sequence working like below?
-
-ode_tol_values %>% ggplot()
-
+## vary tolerance of cohort schedule
 
 ## vary schedule eps & plot LA vs time results
 
-sch_eps_values <- seq(0.001, 0.007, by=0.002) %>% map_dfr(~grow_tidy_expand_totals(scheps = .x))
-#need to split the output into separate data frames not one long one
+sch_eps_values <- c(0.01, 0.001, 0.0001) %>% map_dfr(~grow_tidy_expand_totals(scheps = .x), .id="run")
 
-sch_eps_values %>% ggplot(aes(time, area_leaf)) + geom_line()
+sch_eps_values %>% ggplot(aes(time, area_leaf, col=run)) + geom_line()
 
-```
-
-
-```{r}
-#varying these isn't changing the error/smoothness around LA plot? Times for steps still the same?
-
-ode_tol_4 <- grow_tidy_expand_totals(1e-4, 1e-4)
-ode_tol_5 <- grow_tidy_expand_totals(1e-5, 1e-5)
-ode_tol_6 <- grow_tidy_expand_totals(1e-6, 1e-6)
-ode_tol_7 <- grow_tidy_expand_totals(1e-7, 1e-7)
-
-ode_tol_7 %>% ggplot(aes(time, area_leaf)) + geom_line()
-
-sch_eps_1 <- grow_tidy_expand_totals(scheps=1e-1)
-sch_eps_3 <- grow_tidy_expand_totals(scheps=1e-3)
-sch_eps_5 <- grow_tidy_expand_totals(scheps=1e-5)
-sch_eps_7 <- grow_tidy_expand_totals(scheps=1e-7)
-
-sch_eps_7 %>% ggplot(aes(time, area_leaf)) + geom_line()
 ```
 
 
@@ -321,7 +304,7 @@ Note, get cleaner results if use first cohorts
 
 ```{r}
 results_tidy_expand$species %>% filter(cohort < 150) %>% 
-  patch_species_total() %>%
+  integrate_over_size_distribution() %>%
   mutate(
     area_stem_av = area_stem / individuals,
     # A = pi*D^2/4 -> D = 
@@ -358,7 +341,7 @@ results_tidy_expand$species %>%
 
 ```{r}
 results_tidy_expand$species %>% 
-  patch_species_total() %>%
+  integrate_over_size_distribution() %>%
   mutate(
     area_stem_av = area_stem / individuals,
     diam_av = 
@@ -371,7 +354,7 @@ results_tidy_expand$species %>%
 
   
 results_tidy_expand$species %>% filter(height > 1, time> 20, time<50) %>% 
-  patch_species_total() %>%
+  integrate_over_size_distribution() %>%
   mutate(area_stem_av = area_stem / individuals) %>% 
   ggplot(aes(area_stem_av, individuals, colour=species)) +
   geom_line() +
@@ -380,7 +363,7 @@ results_tidy_expand$species %>% filter(height > 1, time> 20, time<50) %>%
   theme_classic()
 
 results_tidy_expand$species %>% filter(height > 0, time> 0, time<150) %>% 
-  patch_species_total() %>%
+  integrate_over_size_distribution() %>%
   ggplot(aes(time, individuals, colour=species)) +
   geom_line() + 
   theme_classic()
@@ -413,7 +396,7 @@ ggplot(aes(height, density, colour=time, group=time)) +
   facet_wrap(~species)
 
 
-results_tidy_expand$species %>% filter(species==1) %>% plot_size_distribution_patch()   
+results_tidy_expand$species %>% filter(species==1) %>% plot_size_distribution()   
 
 
 ```
@@ -432,7 +415,7 @@ my_results_tidy_expand$species %>% filter(height > 1) %>%
   theme_classic()
 
 ## 
-p3 <- results_tidy_expand$species %>% plot_size_distribution_patch()
+p3 <- results_tidy_expand$species %>% plot_size_distribution()
 p4 <- data_species_tot2 %>% 
   filter(species==1) %>%
   filter()
@@ -605,7 +588,7 @@ data_species_tot %>%
   geom_line()
 ```
 
-We can use the function 'expand_state' to capture a large number of additional state variables (e.g.leaf area)
+We can use the function 'FF16_expand_state' to capture a large number of additional state variables (e.g.leaf area)
 
 In the same way as individuals above, we can have a look at the total leaf area over time by integrating across the size (i.e. height) distribution for a given step or time. This involves finding the product of the density of each of the characteristics present multiplied by the state variable in question (i.e. leaf area) before integrating across height. 
 
