@@ -41,7 +41,10 @@ allsteps1 %>%
 
 ```
 
-## Self-thinning lines 
+
+## Self-thinnning Plot
+For this we need average size over time. Get average size by dividing total by the sum of individuals per unit area
+
 ## why such low heights and very low individuals?
 ## if colour by height, should they not keep getting taller (lighter line), but goes down? area_stem_av continues to increase though...
 
