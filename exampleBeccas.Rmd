@@ -11,7 +11,8 @@ knitr::opts_chunk$set(echo = TRUE)
 Using a version off a branch
 
 ```{r, eval=FALSE}
-remotes::install_github("traitecoevo/plant@ff16r", force = TRUE)
+remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+
 ```
 
 
@@ -46,7 +47,7 @@ plot leaf area line versions with different values and same plot with the multip
 ```{r}
 #base parameters, default arg values set as original control parameter values and no recr. decay
 
-base_params <- function(oderel = 1e-6, odeabs=1e-6, scheps = 0.001, rec_decay = 0) {
+base_params <- function(rec_decay = 0) {
  
   p0 <- scm_base_parameters("FF16")
  
@@ -179,7 +180,8 @@ allsteps %>%
   geom_line()
 
 ```
-
+#more time steps
+#more cohorts
 
 ## varied ODE tolerance rel/abs and schedule eps
 
@@ -343,9 +345,7 @@ results_tidy_expand$species %>%
 results_tidy_expand$species %>% 
   integrate_over_size_distribution() %>%
   mutate(
-    area_stem_av = area_stem / individuals,
-    diam_av = 
-    ) %>% 
+    area_stem_av = area_stem / individuals) %>% 
   ggplot(aes(area_stem_av, individuals, colour=species)) +
   geom_line() +
   scale_y_log10() +

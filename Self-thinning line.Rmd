@@ -1,0 +1,73 @@
+---
+title: "Self-thinning lines"
+output: html_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, eval=FALSE}
+remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+```
+
+```{r load libraries}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+```
+
+```{r activate logger}
+plant_log_console()
+```
+
+
+```{r}
+# default
+allsteps1 <- grow_tidy_expand_totals(1e-4, 1e-4, 0.005, 0)
+
+#higher resolution
+allsteps2 <- grow_tidy_expand_totals(oderel=1e-5, odeabs=1e-5, scheps= 0.0001, rec_decay=5)
+
+allsteps2 %>%
+  ggplot(aes(time, individuals)) +
+  geom_line()
+
+allsteps1 %>%
+  ggplot(aes(time, individuals)) +
+  geom_line()
+
+```
+
+## Self-thinning lines 
+## why such low heights and very low individuals?
+## if colour by height, should they not keep getting taller (lighter line), but goes down? area_stem_av continues to increase though...
+
+```{r}
+allsteps2 %>% filter(height>0.5) %>%
+  mutate(
+    area_stem_av = area_stem / individuals) %>% 
+  ggplot(aes(area_stem_av, individuals, colour=area_stem_av)) +
+  geom_line() +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme_classic()
+
+  
+allsteps2 %>% filter(step>80) %>% 
+  mutate(area_stem_av = area_stem / individuals) %>% 
+  ggplot(aes(area_stem_av, individuals, colour=species)) +
+  geom_line() +
+  scale_y_log10() +
+  scale_x_log10() + 
+  theme_classic()
+
+
+allsteps2 %>% filter(height > 0, time> 0, time<150) %>% 
+  ggplot(aes(time, individuals, colour=height)) +
+  geom_line() + 
+  theme_classic()
+
+```
