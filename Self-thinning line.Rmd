@@ -17,6 +17,9 @@ library(tidyr)
 library(ggplot2)
 library(patchwork)
 library(purrr)
+source("R/grow_tidy_expand_totals function.R")
+source("R/base_params function.R")
+source("R/run_mypatch_edit function.R")
 ```
 
 ```{r activate logger}
