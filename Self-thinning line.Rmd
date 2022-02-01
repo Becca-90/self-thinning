@@ -32,10 +32,14 @@ plant_log_console()
 allsteps1 <- grow_tidy_expand_totals(1e-4, 1e-4, 0.005, 0)
 
 #higher resolution
-allsteps2 <- grow_tidy_expand_totals(oderel=1e-5, odeabs=1e-5, scheps= 0.0001, rec_decay=5)
+allsteps2 <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps= 0.0001, rec_decay=5)
 
 allsteps2 %>%
   ggplot(aes(time, individuals)) +
+  geom_line()
+
+allsteps2 %>%
+  ggplot(aes(time, area_stem_av)) +
   geom_line()
 
 allsteps1 %>%
@@ -52,13 +56,12 @@ For this we need average size over time. Get average size by dividing total by t
 ## if colour by height, should they not keep getting taller (lighter line), but goes down? area_stem_av continues to increase though...
 
 ```{r}
-allsteps2 %>% filter(height>0.5) %>%
-  mutate(
-    area_stem_av = area_stem / individuals) %>% 
-  ggplot(aes(area_stem_av, individuals, colour=area_stem_av)) +
+allsteps2  %>% 
+  filter(time > 0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=time)) +
   geom_line() +
-  scale_y_log10() +
   scale_x_log10() +
+  scale_y_log10() +
   theme_classic()
 
   

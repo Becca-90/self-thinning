@@ -12,6 +12,6 @@ run_mypatch_edit <- function(
   p1$seed_rain = seed_rain
   results <- build_schedule(p1, ctrl = ctrl)
   out <- run_scm_collect(results, ctrl=ctrl)
-  
+
   out
 }
