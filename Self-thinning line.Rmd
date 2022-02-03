@@ -32,7 +32,7 @@ plant_log_console()
 allsteps1 <- grow_tidy_expand_totals(1e-4, 1e-4, 0.005, 0)
 
 #higher resolution + recruitment decay
-allsteps2 <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps= 0.0001, rec_decay=5)
+allsteps2 <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.0001, rec_decay=5)
 
 allsteps2 %>%
   ggplot(aes(time, individuals)) +
@@ -66,8 +66,7 @@ allsteps2  %>%
 
   
 allsteps2 %>% filter(step>80) %>% 
-  mutate(area_stem_av = area_stem / individuals) %>% 
-  ggplot(aes(area_stem_av, individuals, colour=species)) +
+  ggplot(aes(area_stem_av, individuals)) +
   geom_line() +
   scale_y_log10() +
   scale_x_log10() + 
@@ -80,3 +79,68 @@ allsteps2 %>% filter(height > 0, time> 0, time<150) %>%
   theme_classic()
 
 ```
+
+
+##Vary LMA
+```{r}
+allsteps3 <- grow_tidy_expand_totals(scheps=0.0001, rec_decay=5, traits=trait_matrix(0.325, "lma")) %>% filter(time>0.2)
+
+allsteps4 <- grow_tidy_expand_totals(scheps=0.0001, rec_decay=5, traits=trait_matrix(1.25, "lma")) %>% filter(time>0.2)
+
+allsteps3  %>% 
+  filter(time > 0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=time)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+ allsteps4  %>% 
+  filter(time > 0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=time)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+ 
+ #plot both
+
+   ggplot() + geom_line(data = allsteps3, aes(area_stem_av, individuals)) +
+   geom_line(data = allsteps4, aes(area_stem_av, individuals)) +
+   scale_x_log10() +
+   scale_y_log10() +
+    theme_classic()
+   
+   ## add labels
+```
+
+
+##Vary HMAT
+```{r}
+allsteps5 <- grow_tidy_expand_totals(scheps=0.0001, rec_decay=5, traits=trait_matrix(20, "hmat")) %>% filter(time>0.2)
+
+allsteps6 <- grow_tidy_expand_totals(scheps=0.0001, rec_decay=5, traits=trait_matrix(60, "hmat")) %>% filter(time>0.2)
+
+
+## plot separately
+
+allsteps5  %>% 
+  filter(time > 0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=time)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+allsteps6  %>% 
+  filter(time > 0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=time)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+```
+
+
+
