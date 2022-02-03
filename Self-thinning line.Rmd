@@ -31,7 +31,7 @@ plant_log_console()
 # default
 allsteps1 <- grow_tidy_expand_totals(1e-4, 1e-4, 0.005, 0)
 
-#higher resolution
+#higher resolution + recruitment decay
 allsteps2 <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps= 0.0001, rec_decay=5)
 
 allsteps2 %>%
