@@ -20,43 +20,34 @@ library(purrr)
 source("R/grow_tidy_expand_totals function.R")
 source("R/base_params function.R")
 source("R/run_mypatch_edit function.R")
+source("R/grow_tidy_plot function.R")
 ```
 
 ```{r activate logger}
 plant_log_console()
 ```
 
-
+## 1. Grow stand: high resolution + recruitment decay
 ```{r}
-# default
-allsteps1 <- grow_tidy_expand_totals(1e-4, 1e-4, 0.005, 0)
+allsteps <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.0001, rec_decay=5)
 
-#higher resolution + recruitment decay
-allsteps2 <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.0001, rec_decay=5)
-
-allsteps2 %>%
+allsteps %>%
   ggplot(aes(time, individuals)) +
   geom_line()
 
-allsteps2 %>%
+allsteps %>%
   ggplot(aes(time, area_stem_av)) +
-  geom_line()
-
-allsteps1 %>%
-  ggplot(aes(time, individuals)) +
   geom_line()
 
 ```
 
 
-## Self-thinnning Plot
-For this we need average size over time. Get average size by dividing total by the sum of individuals per unit area
-
-## why such low heights and very low individuals?
-## if colour by height, should they not keep getting taller (lighter line), but goes down? area_stem_av continues to increase though...
+## 2. Self-thinnning Plot
+Average size over time. Get average size by dividing total by the sum of individuals per unit area
 
 ```{r}
-allsteps2  %>% 
+# self-thinning line, stem area, diameter (same line as stem area), or height?
+allsteps  %>% 
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=time)) +
   geom_line() +
@@ -64,16 +55,25 @@ allsteps2  %>%
   scale_y_log10() +
   theme_classic()
 
-  
-allsteps2 %>% filter(step>80) %>% 
-  ggplot(aes(area_stem_av, individuals)) +
+allsteps  %>% 
+  filter(time > 0.2) %>%
+  ggplot(aes(height_av, individuals, col=time)) +
   geom_line() +
+  scale_x_log10() +
   scale_y_log10() +
-  scale_x_log10() + 
   theme_classic()
 
-
-allsteps2 %>% filter(height > 0, time> 0, time<150) %>% 
+# average stem area over time
+allsteps %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, area_stem_av)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+  
+# first wave of individuals captured
+allsteps %>% filter(height > 0, time> 0, time<150) %>%
   ggplot(aes(time, individuals, colour=height)) +
   geom_line() + 
   theme_classic()
@@ -81,66 +81,58 @@ allsteps2 %>% filter(height > 0, time> 0, time<150) %>%
 ```
 
 
-##Vary LMA
+## Trait comparisons
 ```{r}
-allsteps3 <- grow_tidy_expand_totals(scheps=0.0001, rec_decay=5, traits=trait_matrix(0.325, "lma")) %>% filter(time>0.2)
 
-allsteps4 <- grow_tidy_expand_totals(scheps=0.0001, rec_decay=5, traits=trait_matrix(1.25, "lma")) %>% filter(time>0.2)
+# 1. thick (0.24 LMA) vs thin (0.07 LMA) leaves - do other traits vary in response to LMA?
+lma_values <- c(0.07, 0.24) %>% map_dfr(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")), .id="run")
 
-allsteps3  %>% 
+lma_values %>%
   filter(time > 0.2) %>%
-  ggplot(aes(area_stem_av, individuals, col=time)) +
+  ggplot(aes(height_av, individuals, col=run)) + 
   geom_line() +
   scale_x_log10() +
   scale_y_log10() +
   theme_classic()
 
- allsteps4  %>% 
+#density over time
+lma_values %>%
   filter(time > 0.2) %>%
-  ggplot(aes(area_stem_av, individuals, col=time)) +
+  ggplot(aes(time, individuals, col=run)) + 
   geom_line() +
   scale_x_log10() +
   scale_y_log10() +
   theme_classic()
- 
- #plot both
 
-   ggplot() + geom_line(data = allsteps3, aes(area_stem_av, individuals)) +
-   geom_line(data = allsteps4, aes(area_stem_av, individuals)) +
-   scale_x_log10() +
-   scale_y_log10() +
-    theme_classic()
+
+# 2. HMAT
+hmat_values <- c(15, 40) %>% map_dfr(~grow_tidy_expand_totals(traits=trait_matrix(.x, "hmat")), .id="run")
+hmat_values %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
    
-   ## add labels
-```
 
-
-##Vary HMAT
-```{r}
-allsteps5 <- grow_tidy_expand_totals(scheps=0.0001, rec_decay=5, traits=trait_matrix(20, "hmat")) %>% filter(time>0.2)
-
-allsteps6 <- grow_tidy_expand_totals(scheps=0.0001, rec_decay=5, traits=trait_matrix(60, "hmat")) %>% filter(time>0.2)
-
-
-## plot separately
-
-allsteps5  %>% 
+# 3. leaf N - narea, B_lf1? How should I implement different values?
+blf1_values <- c(0.2, 0.6, 1) %>% map_dfr(~grow_tidy_expand_totals(B_lf1 = .x), .id="run")
+blf1_values %>%
   filter(time > 0.2) %>%
-  ggplot(aes(area_stem_av, individuals, col=time)) +
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
   scale_x_log10() +
   scale_y_log10() +
   theme_classic()
 
-allsteps6  %>% 
+narea_values <- c(0.00187, 0.003) %>% map_dfr(~grow_tidy_expand_totals(narea = .x), .id="run")
+narea_values %>%
   filter(time > 0.2) %>%
-  ggplot(aes(area_stem_av, individuals, col=time)) +
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
   scale_x_log10() +
   scale_y_log10() +
   theme_classic()
 
 ```
-
-
-

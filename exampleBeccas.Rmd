@@ -36,16 +36,14 @@ plant_log_console()
 1. ode_tol_rel and ode_tol_abs set @ 1*10^-0.6 --> set more/less time steps
 2. schedule_eps set @ 0.001 --> set more/less cohorts
 --> these vary the spacing width in the trapezium integration for the steps output - how wide (time periods or cohort size brackets) are the trapeziums we're integrating for our ODEs to get total numbers for individual's height growth etc? 
--- Control parameters that tune various aspects of the numerical solvers --> Control(..., values = list(...))
-
--- what do above values represent?
+-- Control parameters that tune various aspects of the numerical solvers
 --> compare lower and higher values
 plot leaf area line versions with different values and same plot with the multiple lines to see how different values are changing accuracy & noise, not the "saw-toothy" sharp points/corners, need to resolve better
 
 
 #my base_parameters function
 ```{r}
-#base parameters, default arg values set as original control parameter values and no recr. decay
+#base parameters
 
 base_params <- function(rec_decay = 0) {
  
