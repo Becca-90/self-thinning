@@ -12,12 +12,14 @@ grow_tidy_expand_totals <- function(oderel=1e-4, odeabs=1e-4, scheps=0.0001, rec
   patch_tidy <- tidy_patch(patch)
   patch_expand <- FF16_expand_state(patch_tidy)
   
-  patch_expand$species %>% 
+  patch_total <- patch_expand$species %>% 
   integrate_over_size_distribution() %>%
     mutate(
       area_stem_av = area_stem / individuals,
       height_av = height / individuals,
       stem_diameter_av = (2 * sqrt (area_stem_av / pi))
       )
+  
+  list(p = p, patch = patch, patch_expand = patch_expand, patch_total = patch_total)
   
 }

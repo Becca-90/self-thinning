@@ -85,11 +85,26 @@ allsteps %>% filter(height > 0, time> 0, time<150) %>%
 ```{r}
 
 # 1. thick (0.24 LMA) vs thin (0.07 LMA) leaves
-lma_values <- c(0.07, 0.24) %>% map_dfr(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")), .id="run")
+lma_runs <- c(0.07, 0.24, 0.5) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")))
 
-lma_values %>%
+lma_values <-
+  lma_runs %>% map_dfr(~.x$patch_total, .id = "run")
+
+lma_runs[[1]]  #pull out stuff
+
+  
+  lma_values %>%
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+lma_values %>%
+  mutate(area_leaf_av = area_leaf/individuals) %>%
+  filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
+  ggplot(aes(area_leaf_av, individuals, col=run)) + 
   geom_line() +
   scale_x_log10() +
   scale_y_log10() +
@@ -98,10 +113,8 @@ lma_values %>%
 #density over time both stands
 lma_values %>%
   filter(time > 0.2) %>%
-  ggplot(aes(time, individuals, col=run)) + 
+  ggplot(aes(time, area_leaf, col=run)) + 
   geom_line() +
-  scale_x_log10() +
-  scale_y_log10() +
   theme_classic()
 
 
@@ -138,6 +151,104 @@ narea_values %>%
   theme_classic()
 
 ```
+
+
+### TASKS ###
+
+# 1. plot total la and biomass over time - differences? how big?
+# 2. turn into differences in self-thinning line, zoom in and out
+# 3. vary multiple traits at once
+# 4. before zoomed out log-log plot check differences are there or not
+# 5. check stand:
+#    a. with and without recruitment decay 
+#    b. check LA and biomass over time, LA should be bigger than 0.5
+
+1. 
+```{r}
+
+lma_runs <- c(0.07, 0.24, 0.5) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")))
+
+lma_values <-
+  lma_runs %>% map_dfr(~.x$patch_total, .id = "run")
+
+#LA over time
+lma_values %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, area_leaf, col=run)) + 
+  geom_line() +
+  theme_classic()
+
+#total mass over time, what about average mass?
+lma_values %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, mass_total, col = run)) +
+  geom_line() +
+  theme_classic()
+
+```
+
+2.
+```{r}
+# self-thinning plots
+lma_values %>%
+filter(time > 0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+# zoom in/out
+lma_values %>%
+filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+lma_values %>%
+filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+```
+
+3. 
+```{r}
+#vary LMA + narea: high LMA, high N, med LMA med N, low LMA low N
+
+
+
+
+```
+
+4.
+```{r}
+
+
+
+```
+
+5.
+```{r}
+# 1. with recruitment decay
+
+
+
+
+# 2. without recruitment decay
+
+
+
+
+
+```
+
+
 
 Traits again...
 
