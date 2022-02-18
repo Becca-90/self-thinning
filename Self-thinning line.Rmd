@@ -163,7 +163,7 @@ narea_values %>%
 #    a. with and without recruitment decay 
 #    b. check LA and biomass over time, LA should be bigger than 0.5
 
-1. 
+1. plot total la and biomass over time - differences? how big?
 ```{r}
 
 lma_runs <- c(0.07, 0.24, 0.5) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")))
@@ -178,16 +178,57 @@ lma_values %>%
   geom_line() +
   theme_classic()
 
-#total mass over time, what about average mass?
+#total mass over time
 lma_values %>%
   filter(time > 0.2) %>%
   ggplot(aes(time, mass_total, col = run)) +
   geom_line() +
   theme_classic()
 
+#average mass over time
+lma_values %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, mass_av, col = run)) +
+  geom_line() +
+  theme_classic()
+
+
+narea_runs <- c(0.00187, 0.003, 0.005) %>% map(~grow_tidy_expand_totals(narea = .x))
+
+narea_vals <- narea_runs %>% map_dfr(~.x$patch_total, .id = "run")
+
+# LA over time
+narea_vals %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, area_leaf, col=run)) + 
+  geom_line() +
+  theme_classic()
+
+# total mass over time
+narea_vals %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, mass_total, col = run)) +
+  geom_line() +
+  theme_classic()
+
+# average mass over time
+narea_vals %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, mass_av, col = run)) +
+  geom_line() +
+  theme_classic()
+
+
+# plot size distribution
+lma_vals_expand <- lma_runs %>% map_dfr(~.x$patch_expand$species, .id = "run")
+plot_size_distribution(lma_vals_expand)
+
+narea_vals_expand <- narea_runs %>% map_dfr(~.x$patch_expand$species, .id = "run")
+plot_size_distribution(narea_vals_expand)
+
 ```
 
-2.
+2. turn into differences in self-thinning line, zoom in and out
 ```{r}
 # self-thinning plots
 lma_values %>%
@@ -200,14 +241,7 @@ filter(time > 0.2) %>%
 
 # zoom in/out
 lma_values %>%
-filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
-  ggplot(aes(area_stem_av, individuals, col=run)) + 
-  geom_line() +
-  scale_x_log10() +
-  scale_y_log10() +
-  theme_classic()
-
-lma_values %>%
+  mutate(area_leaf_av = area_leaf/individuals) %>%
 filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
@@ -217,7 +251,7 @@ filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
 
 ```
 
-3. 
+3. vary multiple traits at once
 ```{r}
 #vary LMA + narea: high LMA, high N, med LMA med N, low LMA low N
 
@@ -226,23 +260,28 @@ filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
 
 ```
 
-4.
+4.before zoomed out log-log plot check differences are there or not
 ```{r}
 
 
 
 ```
 
-5.
+5.check stand:
+    a. with and without recruitment decay 
+    b. check LA and biomass over time, LA should be bigger than 0.5
 ```{r}
 # 1. with recruitment decay
 
 
 
-
 # 2. without recruitment decay
 
+lma_norec <- c(0.07, 0.24, 0.5) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), rec_decay = 0))
+lma_vals_norec <- lma_norec %>% map_dfr(~.x$patch_total, .id = "run")
 
+narea_norec <- c(0.00187, 0.003, 0.005) %>% map(~grow_tidy_expand_totals(narea = .x, , rec_decay = 0))
+narea_vals_norec <- narea_norec %>% map_dfr(~.x$patch_total, .id = "run")
 
 
 

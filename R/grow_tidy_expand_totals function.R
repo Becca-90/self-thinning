@@ -17,7 +17,8 @@ grow_tidy_expand_totals <- function(oderel=1e-4, odeabs=1e-4, scheps=0.0001, rec
     mutate(
       area_stem_av = area_stem / individuals,
       height_av = height / individuals,
-      stem_diameter_av = (2 * sqrt (area_stem_av / pi))
+      stem_diameter_av = (2 * sqrt (area_stem_av / pi)),
+      mass_av = mass_total / individuals
       )
   
   list(p = p, patch = patch, patch_expand = patch_expand, patch_total = patch_total)
