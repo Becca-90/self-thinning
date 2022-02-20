@@ -7,7 +7,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r, eval=FALSE}
-remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+#remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
 ```
 
 ```{r load libraries}
@@ -29,14 +29,14 @@ plant_log_console()
 
 ## 1. Grow stand: high resolution + recruitment decay
 ```{r}
-allsteps <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.0001, rec_decay=5)
+allsteps <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.0005, rec_decay=5)
 
-allsteps %>%
+allsteps$patch_total %>%
   ggplot(aes(time, individuals)) +
   geom_line()
 
-allsteps %>%
-  ggplot(aes(time, area_stem_av)) +
+allsteps$patch_total %>%
+  ggplot(aes(time, area_leaf)) +
   geom_line()
 
 ```
@@ -47,7 +47,7 @@ Average size over time. Get average size by dividing total by the sum of individ
 
 ```{r}
 # self-thinning line, stem area, diameter (same line as stem area), or height?
-allsteps  %>% 
+allsteps$patch_total  %>% 
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=time)) +
   geom_line() +
@@ -55,7 +55,7 @@ allsteps  %>%
   scale_y_log10() +
   theme_classic()
 
-allsteps  %>% 
+allsteps$patch_total  %>% 
   filter(time > 0.2) %>%
   ggplot(aes(height_av, individuals, col=time)) +
   geom_line() +
@@ -64,7 +64,7 @@ allsteps  %>%
   theme_classic()
 
 # average stem area over time
-allsteps %>%
+allsteps$patch_total  %>%
   filter(time > 0.2) %>%
   ggplot(aes(time, area_stem_av)) +
   geom_line() +
@@ -73,7 +73,7 @@ allsteps %>%
   theme_classic()
   
 # first wave of individuals captured
-allsteps %>% filter(height > 0, time> 0, time<150) %>%
+allsteps$patch_total  %>% filter(height > 0, time> 0, time<150) %>%
   ggplot(aes(time, individuals, colour=height)) +
   geom_line() + 
   theme_classic()
@@ -81,19 +81,36 @@ allsteps %>% filter(height > 0, time> 0, time<150) %>%
 ```
 
 
+## Varying mortality rate
+
+
+```{r}
+mort_runs <- c(0.0, 0.1) %>% set_names(.) %>% map(~grow_tidy_expand_totals(B_dI1 = .x))
+
+mort_values <-
+  mort_runs %>% map_dfr(~.x$patch_total, .id = "run")
+  
+mort_values %>%
+  ggplot(aes(time, area_leaf, col=run)) +
+  geom_line()
+
+
+```
+
 ## Trait comparisons
 ```{r}
 
 # 1. thick (0.24 LMA) vs thin (0.07 LMA) leaves
-lma_runs <- c(0.07, 0.24, 0.5) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")))
+lma_runs <- 
+    c(0.07, 0.24, 0.5) %>% set_names(.) %>% 
+    map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")))
 
 lma_values <-
   lma_runs %>% map_dfr(~.x$patch_total, .id = "run")
 
-lma_runs[[1]]  #pull out stuff
+#lma_runs[["patch_total"]]  #pull out stuff
 
-  
-  lma_values %>%
+lma_values %>%
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
@@ -102,7 +119,6 @@ lma_runs[[1]]  #pull out stuff
   theme_classic()
 
 lma_values %>%
-  mutate(area_leaf_av = area_leaf/individuals) %>%
   filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
   ggplot(aes(area_leaf_av, individuals, col=run)) + 
   geom_line() +
@@ -120,7 +136,11 @@ lma_values %>%
 
 # 2. HMAT
 
-hmat_values <- c(10, 25, 40) %>% map_dfr(~grow_tidy_expand_totals(traits=trait_matrix(.x, "hmat")), .id="run")
+hmat_runs <- c(5, 10, 25, 40) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "hmat")))
+
+hmat_values <-
+  hmat_runs %>% map_dfr(~.x$patch_total, .id = "run")
+
 hmat_values %>%
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
