@@ -27,7 +27,8 @@ source("R/grow_plot function.R")
 plant_log_console()
 ```
 
-## 1. Grow stand: high resolution + recruitment decay
+
+## 1. Grow stand: high resolution cohort spacing + recruitment decay = 5
 ```{r}
 allsteps <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.0005, rec_decay=5)
 
@@ -36,17 +37,17 @@ allsteps$patch_total %>%
   geom_line()
 
 allsteps$patch_total %>%
-  ggplot(aes(time, area_leaf)) +
+  ggplot(aes(time, area_leaf_av)) +
   geom_line()
 
 ```
 
 
 ## 2. Self-thinnning Plot
-Average size over time. Get average size by dividing total by the sum of individuals per unit area
+Average size over time. Get average size by dividing total of chosen size variable by the sum of individuals per unit area - we have mean stem area, mean stem diameter, mean height, mean mass above ground, and also mean LA
 
 ```{r}
-# self-thinning line, stem area, diameter (same line as stem area), or height?
+# self-thinning line:
 allsteps$patch_total  %>% 
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=time)) +
@@ -68,12 +69,15 @@ allsteps$patch_total  %>%
   filter(time > 0.2) %>%
   ggplot(aes(time, area_stem_av)) +
   geom_line() +
-  scale_x_log10() +
   scale_y_log10() +
   theme_classic()
-  
+ 
+allsteps$patch_expand$species %>%
+  plot_size_distribution() +
+  geom_line()
+
 # first wave of individuals captured
-allsteps$patch_total  %>% filter(height > 0, time> 0, time<150) %>%
+allsteps$patch_total %>% filter(height > 0, time> 0, time<150) %>%
   ggplot(aes(time, individuals, colour=height)) +
   geom_line() + 
   theme_classic()
@@ -82,7 +86,6 @@ allsteps$patch_total  %>% filter(height > 0, time> 0, time<150) %>%
 
 
 ## Varying mortality rate
-
 
 ```{r}
 mort_runs <- c(0.0, 0.1) %>% set_names(.) %>% map(~grow_tidy_expand_totals(B_dI1 = .x))
@@ -97,18 +100,18 @@ mort_values %>%
 
 ```
 
-## Trait comparisons
+
+## Trait comparison: 1. LMA
+
 ```{r}
 
-# 1. thick (0.24 LMA) vs thin (0.07 LMA) leaves
+# 1. thick vs thin leaves
 lma_runs <- 
     c(0.07, 0.24, 0.5) %>% set_names(.) %>% 
     map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")))
 
 lma_values <-
   lma_runs %>% map_dfr(~.x$patch_total, .id = "run")
-
-#lma_runs[["patch_total"]]  #pull out stuff
 
 lma_values %>%
   filter(time > 0.2) %>%
@@ -134,26 +137,18 @@ lma_values %>%
   theme_classic()
 
 
-# 2. HMAT
+#lma_runs[["patch_total"]], lma_runs$"0.07"$patch_total   =pull out stuff
+```
 
-hmat_runs <- c(5, 10, 25, 40) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "hmat")))
 
-hmat_values <-
-  hmat_runs %>% map_dfr(~.x$patch_total, .id = "run")
+## Trait comparison: 2. narea ...also blf1
 
-hmat_values %>%
-  filter(time > 0.2) %>%
-  ggplot(aes(area_stem_av, individuals, col=run)) + 
-  geom_line() +
-  scale_x_log10() +
-  scale_y_log10() +
-  theme_classic()
-   
+```{r}
 
-# 3. leaf N - narea, B_lf1? How should I implement different values?
+narea_runs <- c(0.00187, 0.003, 0.005) %>% set_names(.) %>% map(~grow_tidy_expand_totals(narea = .x))
+narea_vals <- narea_runs %>% map_dfr(~.x$patch_total, .id = "run")
 
-blf1_values <- c(0.2, 0.6, 1) %>% map_dfr(~grow_tidy_expand_totals(B_lf1 = .x), .id="run")
-blf1_values %>%
+narea_vals %>%
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
@@ -161,8 +156,11 @@ blf1_values %>%
   scale_y_log10() +
   theme_classic()
 
-narea_values <- c(0.00187, 0.003) %>% map_dfr(~grow_tidy_expand_totals(narea = .x), .id="run")
-narea_values %>%
+
+blf1_runs <- c(0.4, 0.6, 1) %>% set_names(.) %>% map(~grow_tidy_expand_totals(B_lf1 = .x))
+blf1_vals <- blf1_runs %>% map_dfr(~.x$patch_total, .id = "run")
+
+blf1_vals %>%
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
@@ -173,21 +171,42 @@ narea_values %>%
 ```
 
 
-### TASKS ###
+## Trait comparison: 3. HMAT
 
-# 1. plot total la and biomass over time - differences? how big?
-# 2. turn into differences in self-thinning line, zoom in and out
-# 3. vary multiple traits at once
-# 4. before zoomed out log-log plot check differences are there or not
-# 5. check stand:
-#    a. with and without recruitment decay 
-#    b. check LA and biomass over time, LA should be bigger than 0.5
-
-1. plot total la and biomass over time - differences? how big?
 ```{r}
 
-lma_runs <- c(0.07, 0.24, 0.5) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")))
+hmat_runs <- c(5, 10, 25, 40) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "hmat")))
+hmat_vals <-
+  hmat_runs %>% map_dfr(~.x$patch_total, .id = "run")
 
+hmat_vals %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+```
+
+
+
+### TASKS ###
+
+1. plot total la and biomass over time - differences? how big?
+2. turn into differences in self-thinning line, zoom in and out
+3. vary multiple traits at once
+4. before zoomed out log-log plot check differences are there or not
+5. check stand:
+   a. with and without recruitment decay 
+   b. check LA and biomass over time, LA should be bigger than 0.5
+
+
+
+# 1. plot total la and biomass over time - differences? how big?
+
+```{r}
+
+lma_runs <- c(0.07, 0.24, 0.5) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")))
 lma_values <-
   lma_runs %>% map_dfr(~.x$patch_total, .id = "run")
 
@@ -213,8 +232,15 @@ lma_values %>%
   theme_classic()
 
 
-narea_runs <- c(0.00187, 0.003, 0.005) %>% map(~grow_tidy_expand_totals(narea = .x))
+lmas_hyperpar <- c(0.07, 0.24, 0.4) %>% map(~grow_tidy_expand_totals(patch = run_mypatch_edit(hyper_par_fn = ~make_FF16_hyperpar(lma_0 = .x))))
 
+hyp <- c(0.07, 0.24, 0.4) %>% make_FF16_hyperpar(lma_0=.x) ## this line works...
+
+lmas_hyperpar <- c(0.07, 0.24, 0.4) %>% map(~grow_tidy_expand_totals(patch = run_mypatch_edit(hyper_par_fn = FF16_hyperpar(trait_matrix(0.1, "lma"), s))))
+# FF16_hyperpar(m, s, filter = TRUE)
+
+
+narea_runs <- c(0.00187, 0.003, 0.005) %>% set_names(.) %>% map(~grow_tidy_expand_totals(narea = .x))
 narea_vals <- narea_runs %>% map_dfr(~.x$patch_total, .id = "run")
 
 # LA over time
@@ -248,7 +274,7 @@ plot_size_distribution(narea_vals_expand)
 
 ```
 
-2. turn into differences in self-thinning line, zoom in and out
+# 2. turn into differences in self-thinning line, zoom in and out
 ```{r}
 # self-thinning plots
 lma_values %>%
@@ -271,39 +297,129 @@ filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
 
 ```
 
-3. vary multiple traits at once
+# 3. vary multiple traits at once
 ```{r}
-#vary LMA + narea: high LMA, high N, med LMA med N, low LMA low N
+# 1. vary LMA + narea: high LMA & Narea, med LMA & Narea, low LMA & Narea
 
+lmas <- c(0.07, 0.24, 0.5)
+nareas <- c(0.00187, 0.003, 0.005)   #x and y equal length, or one vector of length one will get repeated
+
+lmas_hmats <- map2(lmas, nareas, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), narea = .y), .id = "run")
+
+lmas_hmats_totals <- lmas_hmats %>% map_dfr(~.x$patch_total, .id = "run") 
+## anonymous function takes .x from before pipe and feeds into $patch_total, .x is the lmas_hmats object, map_dfr needs a function so can't just do map_dfr(lmas_hmats$patch_total)
+lmas_hmats_expandsp <- lmas_hmats %>% map_dfr(~.x$patch_expand$species, .id = "run")
+
+lmas_hmats_totals %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, area_leaf, col=run)) + 
+  geom_line() +
+  theme_classic()
+
+lmas_hmats_totals %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+lmas_hmats_totals %>%
+  filter(time > 0.2, area_stem_av > 1e-06, area_stem_av < 1e0) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+p1 = lmas_hmats_expandsp %>% filter(run == 1) %>% plot_size_distribution()
+
+# blf1 & blf2 ?
+blf1 <- grow_tidy_expand_totals(B_lf1 = 0.8273474)
+blf2 <- grow_tidy_expand_totals(B_lf2 = 0.6)
+
+
+#LMA hyperpar, narea
+
+lmas <- c(0.07, 0.24, 0.5)
+nareas <- c(0.00187, 0.003, 0.005)   #x and y equal length, or one vector of length one will get repeated
+
+lmas_nareas <- map2(lmas, nareas, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), narea = .y, patch=run_mypatch_edit(hyper_par_fn = make_FF16_hyperpar(lma_0 = .x)), .id = "run"))
+
+
+lmas <- c(0.07, 0.24, 0.5)
+nareas <- c(0.00187, 0.003, 0.005)
+# third trait <- c()
+
+tradeoffs_vals <- list(c(0.07, 0.24, 0.5), c(0.00187, 0.003, 0.005), c())
+tradeoffs <- pmap(tradeoff_vals, ~grow_tidy_expand_totals(traits=trait_matrix(..1, "lma"), narea = ..2))
+
+
+#pmap_dfr(.l, .f, ..., .id = NULL)
+#pmap(.l, .f, ...)
+```
+
+leaf area declines over time.
+1. as you get taller, your shade tolerance decreases (see Falster et al 2018 "how functional traits..."). 
+So if Hmat is high, leaf area keeps decreasing,
+background mortality keeps slowly killing plants, so varying background mortality kills things more/less
+
+taller = less investment in leaves as less shading so don't need to compensate with extra leaf area?
+
+# 4.before zoomed out log-log plot check differences are there or not
+```{r}
 
 
 
 ```
 
-4.before zoomed out log-log plot check differences are there or not
-```{r}
-
-
-
-```
-
-5.check stand:
+# 5.check stand:
     a. with and without recruitment decay 
     b. check LA and biomass over time, LA should be bigger than 0.5
 ```{r}
 # 1. with recruitment decay
 
+with_recdecay <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.0005, rec_decay=5)
 
+with_recdecay$patch_total %>%
+  ggplot(aes(time, individuals)) +
+  geom_line()
+
+with_recdecay$patch_total %>%
+  ggplot(aes(time, area_leaf_av)) +
+  geom_line()
+
+lma_norec <- c(0.07, 0.24, 0.5) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), rec_deay = 5))
+lma_vals_norec <- lma_norec %>% map_dfr(~.x$patch_total, .id = "run")
+
+narea_norec <- c(0.00187, 0.003, 0.005) %>% map(~grow_tidy_expand_totals(narea = .x, , rec_decay = 5))
+narea_vals_norec <- narea_norec %>% map_dfr(~.x$patch_total, .id = "run")
 
 # 2. without recruitment decay
 
+## LMAs 
 lma_norec <- c(0.07, 0.24, 0.5) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), rec_decay = 0))
 lma_vals_norec <- lma_norec %>% map_dfr(~.x$patch_total, .id = "run")
 
-narea_norec <- c(0.00187, 0.003, 0.005) %>% map(~grow_tidy_expand_totals(narea = .x, , rec_decay = 0))
+with_recdecay$patch_total %>%
+  ggplot(aes(time, individuals)) +
+  geom_line()
+
+with_recdecay$patch_total %>%
+  ggplot(aes(time, area_leaf_av)) +
+  geom_line()
+
+## NAREAs
+narea_norec <- c(0.00187, 0.003, 0.005) %>% map(~grow_tidy_expand_totals(narea = .x, rec_decay = 0))
 narea_vals_norec <- narea_norec %>% map_dfr(~.x$patch_total, .id = "run")
 
+narea_vals_norec %>%
+  ggplot(aes(time, individuals, col=run)) +
+  geom_line()
 
+narea_vals_norec %>%
+  ggplot(aes(time, area_leaf, col=run)) +
+  geom_line()
 
 ```
 
@@ -319,7 +435,6 @@ lma affects a few places in the model; see the source code, but only really for 
 
 We capture this through what we call a “hyper-parameterisation”; additional parameters and functions that mean that changing one parameter might affect a number of other lower-level parameters. Our default hyper-parameterisation is via the FF16_hyperpar function:
   FF16_hyperpar
-
 
   FF16_hyperpar(trait_matrix(0.1, "lma"), FF16_Strategy())
 
@@ -344,29 +459,23 @@ will create a strategy s where lma is set but also all the parameters that depen
 
   FF16_hyperpar(trait_matrix(lma, "lma"), s)
 
-```{r}
-## LMA, B_LF1
-lma07 <- grow_tidy_expand_totals(traits=trait_matrix(0.07, "lma"))
-lma24 <- grow_tidy_expand_totals(traits=trait_matrix(0.24, "lma"))
-blf1 <- grow_tidy_expand_totals(B_lf1 = 0.8273474)
-blf2 <- grow_tidy_expand_totals(B_lf1 = 0.6)
-
-ggplot() +
-geom_line(data=lma07, aes(area_stem_av, individuals), color='green') + 
-geom_line(data=lma24, aes(area_stem_av, individuals), color='red') +
-geom_line(data=blf1, aes(area_stem_av, individuals), color='blue') +
-geom_line(data=blf2, aes(area_stem_av, individuals), color='orange') +
-  scale_x_log10() +
-  scale_y_log10() +
-  theme_classic()
-```
-
 
 ```{r}
 
+lmas_hyperpar <- c(0.07, 0.24, 0.4) %>% map_df(~grow_tidy_expand_totals(patch = run_mypatch_edit(hyper_par_fn = make_FF16_hyperpar(lma_0 = .x))))
+
+hyp <- c(0.07, 0.24, 0.4) %>% make_FF16_hyperpar(lma_0=.x)
+
+
+
+lmas_hyperpar <- c(0.07, 0.24, 0.4) %>% map(~grow_tidy_expand_totals(patch = run_mypatch_edit(hyper_par_fn = FF16_hyperpar(trait_matrix(0.1, "lma"), s))))
+
+FF16_hyperpar(trait_matrix(0.1, "lma"), strat)
+# FF16_hyperpar(m, s, filter = TRUE)
 
 
 ```
+
 
 
 ## Paired traits
@@ -384,3 +493,4 @@ geom_line(data=blf2, aes(area_stem_av, individuals), color='orange') +
 
 ```
 
+#lma_runs[["patch_total"]]  #pull out stuff
