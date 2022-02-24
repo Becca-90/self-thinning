@@ -227,7 +227,13 @@ lma_values %>%
 #average mass over time
 lma_values %>%
   filter(time > 0.2) %>%
-  ggplot(aes(time, mass_av, col = run)) +
+  ggplot(aes(time, mass_above_ground_av, col = run)) +
+  geom_line() +
+  theme_classic()
+
+lma_values %>%
+  filter(time > 0.2, time < 15) %>%
+  ggplot(aes(time, mass_above_ground_av, col = run)) +
   geom_line() +
   theme_classic()
 
@@ -236,7 +242,7 @@ lmas_hyperpar <- c(0.07, 0.24, 0.4) %>% map(~grow_tidy_expand_totals(patch = run
 
 hyp <- c(0.07, 0.24, 0.4) %>% make_FF16_hyperpar(lma_0=.x) ## this line works...
 
-lmas_hyperpar <- c(0.07, 0.24, 0.4) %>% map(~grow_tidy_expand_totals(patch = run_mypatch_edit(hyper_par_fn = FF16_hyperpar(trait_matrix(0.1, "lma"), s))))
+#lmas_hyperpar <- c(0.07, 0.24, 0.4) %>% map(~grow_tidy_expand_totals(patch = run_mypatch_edit(hyper_par_fn = FF16_hyperpar(trait_matrix(0.1, "lma"), s))))
 # FF16_hyperpar(m, s, filter = TRUE)
 
 
@@ -274,6 +280,7 @@ plot_size_distribution(narea_vals_expand)
 
 ```
 
+
 # 2. turn into differences in self-thinning line, zoom in and out
 ```{r}
 # self-thinning plots
@@ -296,6 +303,7 @@ filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
   theme_classic()
 
 ```
+
 
 # 3. vary multiple traits at once
 ```{r}
@@ -377,7 +385,7 @@ taller = less investment in leaves as less shading so don't need to compensate w
     a. with and without recruitment decay 
     b. check LA and biomass over time, LA should be bigger than 0.5
 ```{r}
-# 1. with recruitment decay
+### 1. with recruitment decay
 
 with_recdecay <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.0005, rec_decay=5)
 
@@ -395,7 +403,7 @@ lma_vals_norec <- lma_norec %>% map_dfr(~.x$patch_total, .id = "run")
 narea_norec <- c(0.00187, 0.003, 0.005) %>% map(~grow_tidy_expand_totals(narea = .x, , rec_decay = 5))
 narea_vals_norec <- narea_norec %>% map_dfr(~.x$patch_total, .id = "run")
 
-# 2. without recruitment decay
+### 2. without recruitment decay
 
 ## LMAs 
 lma_norec <- c(0.07, 0.24, 0.5) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), rec_decay = 0))
