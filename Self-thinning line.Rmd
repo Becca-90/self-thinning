@@ -238,13 +238,6 @@ lma_values %>%
   theme_classic()
 
 
-lmas_hyperpar <- c(0.07, 0.24, 0.4) %>% map(~grow_tidy_expand_totals(patch = run_mypatch_edit(hyper_par_fn = ~make_FF16_hyperpar(lma_0 = .x))))
-
-hyp <- c(0.07, 0.24, 0.4) %>% make_FF16_hyperpar(lma_0=.x) ## this line works...
-
-#lmas_hyperpar <- c(0.07, 0.24, 0.4) %>% map(~grow_tidy_expand_totals(patch = run_mypatch_edit(hyper_par_fn = FF16_hyperpar(trait_matrix(0.1, "lma"), s))))
-# FF16_hyperpar(m, s, filter = TRUE)
-
 
 narea_runs <- c(0.00187, 0.003, 0.005) %>% set_names(.) %>% map(~grow_tidy_expand_totals(narea = .x))
 narea_vals <- narea_runs %>% map_dfr(~.x$patch_total, .id = "run")
@@ -305,26 +298,26 @@ filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
 ```
 
 
-# 3. vary multiple traits at once
+# 3. vary two traits at once: LMA/narea
 ```{r}
-# 1. vary LMA + narea: high LMA & Narea, med LMA & Narea, low LMA & Narea
+# 3.a. vary 2 TRAITS: LMA + narea
 
 lmas <- c(0.07, 0.24, 0.5)
-nareas <- c(0.00187, 0.003, 0.005)   #x and y equal length, or one vector of length one will get repeated
+nareas <- c(0.00187, 0.003, 0.005)   #x and y equal length, or one vector of length 1 will get repeated
 
-lmas_hmats <- map2(lmas, nareas, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), narea = .y), .id = "run")
+lmas_nareas <- map2(lmas, nareas, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), narea = .y), .id = "run")
 
-lmas_hmats_totals <- lmas_hmats %>% map_dfr(~.x$patch_total, .id = "run") 
+lmas_nareas_totals <- lmas_hmats %>% map_dfr(~.x$patch_total, .id = "run") 
 ## anonymous function takes .x from before pipe and feeds into $patch_total, .x is the lmas_hmats object, map_dfr needs a function so can't just do map_dfr(lmas_hmats$patch_total)
-lmas_hmats_expandsp <- lmas_hmats %>% map_dfr(~.x$patch_expand$species, .id = "run")
+lmas_nareas_expandsp <- lmas_hmats %>% map_dfr(~.x$patch_expand$species, .id = "run")
 
-lmas_hmats_totals %>%
+lmas_nareas_totals %>%
   filter(time > 0.2) %>%
   ggplot(aes(time, area_leaf, col=run)) + 
   geom_line() +
   theme_classic()
 
-lmas_hmats_totals %>%
+lmas_nareas_totals %>%
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
@@ -332,7 +325,7 @@ lmas_hmats_totals %>%
   scale_y_log10() +
   theme_classic()
 
-lmas_hmats_totals %>%
+lmas_nareas_totals %>%
   filter(time > 0.2, area_stem_av > 1e-06, area_stem_av < 1e0) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
@@ -340,39 +333,100 @@ lmas_hmats_totals %>%
   scale_y_log10() +
   theme_classic()
 
-p1 = lmas_hmats_expandsp %>% filter(run == 1) %>% plot_size_distribution()
+p1 = lmas_nareas_expandsp %>% filter(run == 1) %>% plot_size_distribution()
+
+```
+
+
+# 3.b. vary 3 traits: LMA/narea/hmat
+```{r}
+
+lmas2 <- c(0.07, 0.125, 0.24, 0.5)
+hmats2 <- c(5, 10, 25, 40)
+nareas2 <- c(0.00187, 0.0025, 0.0035, 0.005)
+
+tradeoffs <- list(c(0.07, 0.125, 0.24, 0.5), c(5, 10, 25, 40), c(0.00187, 0.0025, 0.0035, 0.005))
+tradeoffs_runs <- pmap(tradeoffs, ~grow_tidy_expand_totals(traits=trait_matrix(..1, "lma"), trait_matrix(..2, "hmat"), narea = ..3))
+
+tradeoffs_values <- tradeoffs_runs %>% map_dfr(~.x$patch_total, .id = "run")
+
+tradeoffs_values %>%
+  filter(time > 0.2, area_stem_av >1e-07, area_stem_av < 1e-00) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+
+tradeoffs_values %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, area_leaf, col=run)) + 
+  geom_line() +
+  theme_classic()
+
 
 # blf1 & blf2 ?
 blf1 <- grow_tidy_expand_totals(B_lf1 = 0.8273474)
 blf2 <- grow_tidy_expand_totals(B_lf2 = 0.6)
 
 
-#LMA hyperpar, narea
-
-lmas <- c(0.07, 0.24, 0.5)
-nareas <- c(0.00187, 0.003, 0.005)   #x and y equal length, or one vector of length one will get repeated
-
-lmas_nareas <- map2(lmas, nareas, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), narea = .y, patch=run_mypatch_edit(hyper_par_fn = make_FF16_hyperpar(lma_0 = .x)), .id = "run"))
-
-
-lmas <- c(0.07, 0.24, 0.5)
-nareas <- c(0.00187, 0.003, 0.005)
-# third trait <- c()
-
-tradeoffs_vals <- list(c(0.07, 0.24, 0.5), c(0.00187, 0.003, 0.005), c())
-tradeoffs <- pmap(tradeoff_vals, ~grow_tidy_expand_totals(traits=trait_matrix(..1, "lma"), narea = ..2))
-
-
-#pmap_dfr(.l, .f, ..., .id = NULL)
-#pmap(.l, .f, ...)
 ```
+
+
+#use code in make hyperpar to plot tradeoffs
+#LMA vs k_l
+#narea affecting Amax and respiration
+#wood density affecting DI mortality and wood turnover rate
+#-> vary strength of tradeoffs and plot stronger vs weaker tradeoff strength
+
+#run hyperparameter function to see what changes, look into the function, lma, narea and wood density changes stuff, parameter for strength of tradeoff 
+
+lma/ll relationship:
+k_l   <- B_kl1 * (lma / lma_0) ^ (-B_kl2)
+lma_0: central (mean) value for LMA
+B_kl1: rate of leaf turnover at lma_0
+B_kl2: scaling slope for phi in leaf turnover
+
+WD/mortality relationship:
+d_I  <- B_dI1 * (rho / rho_0) ^ (-B_dI2)
+rho_0: central (mean) value for WD
+B_dI1: rate of instantaneous mortality at rho_0
+B_dI2: scaling slope for WD in intrinsic mortality
+
+WD/wood turnover relationship:
+k_s  <- B_ks1 *  (rho / rho_0) ^ (-B_ks2)
+B_ks1: rate of sapwood turnover at rho_0
+B_ks2: scaling slope for rho in sapwood turnover
+
+Narea, photosynthesis, respiration relationship:
+Amax <- B_lf1 * (narea/narea_0) ^  B_lf5
+narea: nitrogen per leaf area
+narea_0: central (mean) value for nitrogen per leaf area
+B_lf1: potential CO2 photosynthesis at average leaf N
+B_lf5: scaling exponent for leaf nitrogen in maximum leaf photosynthesis
+
+```{r}
+
+
+
+
+```
+
 
 leaf area declines over time.
 1. as you get taller, your shade tolerance decreases (see Falster et al 2018 "how functional traits..."). 
 So if Hmat is high, leaf area keeps decreasing,
 background mortality keeps slowly killing plants, so varying background mortality kills things more/less
 
-taller = less investment in leaves as less shading so don't need to compensate with extra leaf area?
+higher costs, carbon budget decrease, less shade tolerance
+min light level getting higher
+thinning budgets 
+
+pushing plants to zero carbon budget the higher HMAT
+
+resource or light compensation point as function of height - solve for this
+
 
 # 4.before zoomed out log-log plot check differences are there or not
 ```{r}
