@@ -365,51 +365,165 @@ tradeoffs_values %>%
   geom_line() +
   theme_classic()
 
-
-# blf1 & blf2 ?
-blf1 <- grow_tidy_expand_totals(B_lf1 = 0.8273474)
-blf2 <- grow_tidy_expand_totals(B_lf2 = 0.6)
-
-
 ```
 
 
-#use code in make hyperpar to plot tradeoffs
-#LMA vs k_l
+#use code in make_hyperpar to plot tradeoffs
+#e.g. LMA vs k_l
 #narea affecting Amax and respiration
 #wood density affecting DI mortality and wood turnover rate
-#-> vary strength of tradeoffs and plot stronger vs weaker tradeoff strength
+# -> vary strength of tradeoffs and plot stronger vs weaker tradeoff strength
+# exponent = 0 ?
 
 #run hyperparameter function to see what changes, look into the function, lma, narea and wood density changes stuff, parameter for strength of tradeoff 
 
+
 lma/ll relationship:
-k_l   <- B_kl1 * (lma / lma_0) ^ (-B_kl2)
+k_l   <- B_kl1 * (lma / lma_0) ^ (-B_kl2) = rate of leaf turnover * (LMA/mean LMA) ^ scaling exponent
 lma_0: central (mean) value for LMA
 B_kl1: rate of leaf turnover at lma_0
-B_kl2: scaling slope for phi in leaf turnover
+B_kl2: scaling slope(exponent) for phi (LMA) in leaf turnover = 1.71 default
+# if lma = lma_0 or scaling exponent = 0, k_l = B_kl1
 
 WD/mortality relationship:
-d_I  <- B_dI1 * (rho / rho_0) ^ (-B_dI2)
+d_I  <- B_dI1 * (rho / rho_0) ^ (-B_dI2) = rate of inst. mortality * (rho/mean rho) ^ scaling exponent
 rho_0: central (mean) value for WD
 B_dI1: rate of instantaneous mortality at rho_0
-B_dI2: scaling slope for WD in intrinsic mortality
+B_dI2: scaling slope for WD in intrinsic mortality = 0 default
+# if rho = rho_0 or scaling exponent = 0, d_I = B_dI1
 
 WD/wood turnover relationship:
-k_s  <- B_ks1 *  (rho / rho_0) ^ (-B_ks2)
+k_s  <- B_ks1 *  (rho / rho_0) ^ (-B_ks2) = rate of sapwood turnover * (rho/mean rho) ^ scaling exponent
 B_ks1: rate of sapwood turnover at rho_0
-B_ks2: scaling slope for rho in sapwood turnover
+B_ks2: scaling slope(exponent) for rho in sapwood turnover = 0 default
+# if rho = rho_0 or scaling exponent = 0, k_s = B_ks1
 
 Narea, photosynthesis, respiration relationship:
-Amax <- B_lf1 * (narea/narea_0) ^  B_lf5
+Amax <- B_lf1 * (narea/narea_0) ^  B_lf5 = 
 narea: nitrogen per leaf area
 narea_0: central (mean) value for nitrogen per leaf area
 B_lf1: potential CO2 photosynthesis at average leaf N
-B_lf5: scaling exponent for leaf nitrogen in maximum leaf photosynthesis
+B_lf5: scaling exponent for leaf nitrogen in maximum leaf photosynthesis = 1 default
+# if narea = narea_0 or scaling exponent = 0, Amax = B_lf1
+
+{m} A matrix of trait values
+{s} A strategy object
+{k_I} light extinction coefficient
+
+## default values of interest:
+make_FF16_hyperpar(
+    lma_0=0.1978791, 
+    B_kl1=0.4565855, 
+    B_kl2=1.71, 
+    rho_0=608.0, 
+    B_dI1=0.01, 
+    B_dI2=0.0,
+    B_ks1=0.2,
+    B_ks2=0.0,
+    narea=1.87e-3,
+    narea_0=1.87e-3,
+    B_lf1=5120.738 * 1.87e-3 * 24 * 3600 / 1e+06,
+    B_lf5=1)
+
+#use code in make_FF16_hyperpar to plot tradeoffs
+#LMA vs k_l
+#narea affecting Amax and respiration
+#wood density affecting DI mortality and wood turnover rate
+
+# -> vary strength of tradeoffs and plot stronger vs weaker tradeoff strength
+
+#run hyperparameter function to see what changes, look into the function, lma, narea and wood density changes stuff, parameter for strength of tradeoff 
 
 ```{r}
 
+## LMA vs k_l
+
+k_l_tradeoffs <- function(lma_0 = 0.1978791,
+                lma = 0.1978791,
+                B_kl1=0.4565855,
+                B_kl2=1.71){
+  
+  k_l_val <- B_kl1 * (lma / lma_0) ^ (-B_kl2)
+  k_l_df <- tibble(lma, k_l_val, B_kl2)
+  return(k_l_df)
+  
+}
+
+## a. weaker trade-off strength
+
+lmall_tradeoff_low <- seq(0.07, 2.5, by=0.02) %>% set_names(.) %>% map_dfr(~k_l_tradeoffs(lma=.x, B_kl2 = 0.5)) %>% ggplot(aes(lma, k_l_val)) + 
+  geom_line() +
+  theme_classic()
+
+## b. higher trade-off strength
+
+lmall_tradeoff_high <- seq(0.07, 2.5, by=0.02) %>% set_names(.) %>% map_dfr(~k_l_tradeoffs(lma=.x, B_kl2=2)) %>% ggplot(aes(lma, k_l_val)) + 
+  geom_line() +
+  theme_classic() 
+
+## narea affecting Amax and respiration
+
+amax_tradeoffs <- function(narea_0=1.87e-3, 
+                 narea=1.87e-3, 
+                 B_lf5=1,
+                 B_lf1=0.8273474){
+  
+Amax <- B_lf1 * (narea/narea_0) ^ B_lf5
+Amax_df <- tibble(Amax, narea, B_lf5)
+return(Amax_df)
+
+}
+
+## a. weaker tradeoff strength:
+amax_tradeoff_low <- seq(0.00187, 0.0031, by=0.0001) %>% set_names(.) %>% map_dfr(~amax_tradeoffs(narea=.x)) %>% ggplot(aes(narea, Amax)) + 
+  geom_line() +
+  theme_classic()
+
+## b. higher tradeoff strength:
+amax_tradeoff_high <- seq(0.00187, 0.0031, by=0.0001) %>% set_names(.) %>% map_dfr(~amax_tradeoffs(narea=.x, B_lf5=5)) %>% ggplot(aes(narea, Amax)) + 
+  geom_line() +
+  theme_classic()
 
 
+## wood density affecting DI mortality and wood turnover rate
+
+wd_tradeoffs <- function(
+  rho_0 = 608,
+  rho = 608, 
+  B_dI1 = 0.01,
+  B_dI2=0.0,
+  B_ks1=0.2,
+  B_ks2=0.0
+) {
+  
+  d_I <- B_dI1 * (rho / rho_0) ^ (-B_dI2)
+  k_s <- B_ks1 * (rho / rho_0) ^ (-B_ks2)
+  
+  di_ks_df <- tibble(k_s, d_I, rho, B_ks2, B_dI2)
+  
+  return(di_ks_df)
+  
+}
+
+## a. weaker tradeoff strength
+
+dI_weak <- seq(400, 800, by=10) %>% set_names(.) %>% map_dfr(~wd_tradeoffs(rho=.x, B_dI2=0.5)) %>% ggplot(aes(rho, d_I)) + 
+  geom_line() +
+  theme_classic()
+
+ks_weak <- seq(400, 800, by=10) %>% set_names(.) %>% map_dfr(~wd_tradeoffs(rho=.x, B_ks2=0.5)) %>% ggplot(aes(rho, k_s)) + 
+  geom_line() +
+  theme_classic()
+
+## b. higher tradeoff strength
+
+dI_strong <- seq(400, 800, by=10) %>% set_names(.) %>% map_dfr(~wd_tradeoffs(rho=.x, B_dI2=3)) %>% ggplot(aes(rho, d_I)) + 
+  geom_line() +
+  theme_classic()
+
+ks_strong <- seq(400, 800, by=10) %>% set_names(.) %>% map_dfr(~wd_tradeoffs(rho=.x, B_ks2=3)) %>% ggplot(aes(rho, k_s)) + 
+  geom_line() +
+  theme_classic()
 
 ```
 
