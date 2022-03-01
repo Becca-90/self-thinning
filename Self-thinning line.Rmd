@@ -378,30 +378,31 @@ tradeoffs_values %>%
 
 
 lma/ll relationship:
-k_l   <- B_kl1 * (lma / lma_0) ^ (-B_kl2) = rate of leaf turnover * (LMA/mean LMA) ^ scaling exponent
+k_l   <- B_kl1 * (lma / lma_0) ^ (-B_kl2) = rate of leaf turnover * (LMA/mean LMA) ^ scaling exponent     [/yr]
 lma_0: central (mean) value for LMA
-B_kl1: rate of leaf turnover at lma_0
+B_kl1: rate of leaf turnover at lma_0 [/yr]
 B_kl2: scaling slope(exponent) for phi (LMA) in leaf turnover = 1.71 default
 # if lma = lma_0 or scaling exponent = 0, k_l = B_kl1
 
 WD/mortality relationship:
-d_I  <- B_dI1 * (rho / rho_0) ^ (-B_dI2) = rate of inst. mortality * (rho/mean rho) ^ scaling exponent
+d_I  <- B_dI1 * (rho / rho_0) ^ (-B_dI2) = rate of inst. mortality * (rho/mean rho) ^ scaling exponent      [/yr]
 rho_0: central (mean) value for WD
 B_dI1: rate of instantaneous mortality at rho_0
 B_dI2: scaling slope for WD in intrinsic mortality = 0 default
 # if rho = rho_0 or scaling exponent = 0, d_I = B_dI1
 
 WD/wood turnover relationship:
-k_s  <- B_ks1 *  (rho / rho_0) ^ (-B_ks2) = rate of sapwood turnover * (rho/mean rho) ^ scaling exponent
+k_s  <- B_ks1 *  (rho / rho_0) ^ (-B_ks2) = rate of sapwood turnover * (rho/mean rho) ^ scaling exponent      [/yr]
 B_ks1: rate of sapwood turnover at rho_0
 B_ks2: scaling slope(exponent) for rho in sapwood turnover = 0 default
 # if rho = rho_0 or scaling exponent = 0, k_s = B_ks1
 
 Narea, photosynthesis, respiration relationship:
-Amax <- B_lf1 * (narea/narea_0) ^  B_lf5 = 
+Amax <- B_lf1 * (narea/narea_0) ^  B_lf5 = potential photosynthesis * narea/narea_0 ^ scaling exponent     [mol / d / m2]
+r_l  <- B_lf4 * narea / lma -- B_lf4 CO_2 respiration per unit leaf nitrogen [mol / yr / kg]
 narea: nitrogen per leaf area
 narea_0: central (mean) value for nitrogen per leaf area
-B_lf1: potential CO2 photosynthesis at average leaf N
+B_lf1: potential CO2 photosynthesis at average leaf N [mol / d / m2]
 B_lf5: scaling exponent for leaf nitrogen in maximum leaf photosynthesis = 1 default
 # if narea = narea_0 or scaling exponent = 0, Amax = B_lf1
 
