@@ -7,7 +7,7 @@ output: html_document
 Obtaining the Self-Thinning Line from a size structured non-finite population growing through time
 
 
-1. The "self-thinning line" is obtained when we plot N, the number of individuals of each time point, per unit area (could also consider size structured density per unit time?), against mean S, their mean size (e.g. via their height or stem diameter). Scaling these axes by log10 produces a straight "thinning line".
+1. The "self-thinning line" is obtained when we plot N, the number of individuals of each time point, per unit area, against mean S, their mean size (e.g. via their height or stem diameter). Scaling these axes by log10 produces a straight "thinning line".
 
 $$ N_{T}= \int_{S_{0}}^{S_{MAX}}N(S)ds.....S_{T} = \int_{S_{0}}^{S_{MAX}} S.N(S)ds.....\overline{S} = \frac{S_{T}}{N_{T}} $$
 i.e. the plot shows size-density (N-S) using the above integrals to calculate N and S across the size spectrum. 
@@ -102,21 +102,26 @@ no_rec$patch_total %>%
 ```
 
 
+
+Traits -- LMA, HMAT, WD, leaf N
+
 ## Trait comparison: 1. LMA
 ```{r}
 
 # 1. thick vs thin leaves
 lma_runs <- 
-    c(0.07, 0.24, 0.5) %>% set_names(.) %>% 
-    map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")))
+    c(0.07, 0.24, 0.5) %>% 
+    map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")), .id="run")
 
 lma_values <-
   lma_runs %>% map_dfr(~.x$patch_total, .id = "run")
 
 lma_values %>%
-  filter(time > 0.2) %>%
-  ggplot(aes(area_stem_av, individuals, col=run)) + 
-  geom_line() +
+  filter(time > 0.2, individuals > 1e-3) %>%
+  ggplot(aes(area_stem_av, individuals, col=run, label=time)) + 
+  geom_line() + 
+  geom_point(colour = case_when(lma_values$time %% 5 == 0 ~ "orange")) +
+  geom_text() +
   scale_x_log10() +
   scale_y_log10() +
   theme_classic()
@@ -124,35 +129,87 @@ lma_values %>%
 lma_values %>%
   filter(time > 0.2) %>%
   ggplot(aes(time, area_leaf, col=run)) + 
-  geom_line() +
-  scale_x_log10() +
-  scale_y_log10() +
+  geom_line() + geom_point()
   theme_classic()
 
+install.packages("ggrepel")
+library(ggrepel)
+
+
+################################################################################
+## function below takes arguments x (the times), and at (the set of time values we want to ## mark). repeat for all values "", number of times = the length of x (795 times). 
+## for a in at (value in set), dist <- absolute value of time x - a in at values, 
+## i is which dist has the minimum value
+## keeps the a associated to the i with lowest dist
+## out all values
+
+find_closest <- function(x, at){
+  
+out <- rep("", length(x))  
+
+for(a in at){
+  dist <- abs(x-a)
+  i <- which(dist == min(dist))
+  out[i] <- a
+  } 
+out
+}
+
+find_closest(x, at)
+
+################################################################################
+
+lma_values %>%
+  filter(time > 0.2) %>%
+  mutate(
+      my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))     
+      ) %>%
+  ggplot(aes(area_stem_av, individuals, col=run, label=my_label)) + 
+  geom_line() + 
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()+ facet_wrap(~run)
+
+
+
+  
+
+for (i in 1:length(lma_values$time)) {
+  if (i %% 5 == 0)
+    print(i)
+}
+
+## use modulo for selecting points to mark in plot? if time divisible by 5, add point? every 5 years?
+## if statement... if time %% 5 = 0, -> mark point
 ```
 
 ## Trait comparison: 2. narea
 ```{r}
 
 narea_runs <- c(0.00187, 0.003, 0.005) %>% map(~grow_tidy_expand_totals(narea = .x), .id="run")
+
 narea_vals <- narea_runs %>% map_dfr(~.x$patch_total, .id = "run")
+
 narea_vals_expand <- narea_runs %>% map_dfr(~.x$patch_expand$species, .id = "run")
 
 narea_vals %>%
   filter(time > 0.2) %>%
+  mutate(
+      my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))     
+      ) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
-  scale_x_log10() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
   scale_y_log10() +
-  theme_classic()
+  scale_x_log10() +
+  theme_classic() + facet_wrap(~run)
 
 narea_vals %>%
   filter(time > 0.2) %>%
   ggplot(aes(time, area_leaf, col=run)) + 
   geom_line() +
   theme_classic()
-
-narea_vals_expand %>% filter(run==2) %>% plot_size_distribution()
 
 ```
 
@@ -165,11 +222,15 @@ hmat_vals <-
 
 hmat_vals %>%
   filter(time > 0.2) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
   scale_x_log10() +
   scale_y_log10() +
-  theme_classic()
+  theme_classic() + facet_wrap(~run)
 
 ```
 
@@ -203,7 +264,7 @@ lma_values %>%
   theme_classic()
 
 lma_values %>%
-  filter(time > 0.2, time < 15) %>%
+  filter(time > 0.2, time < 40) %>%
   ggplot(aes(time, mass_above_ground_av, col = run)) +
   geom_line() +
   theme_classic()
@@ -240,12 +301,16 @@ narea_vals %>%
 ```{r}
 # self-thinning plots
 lma_values %>%
+mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
 filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
   scale_x_log10() +
   scale_y_log10() +
-  theme_classic()
+  theme_classic() + facet_wrap(~run)
 
 # zoom in/out
 lma_values %>%
@@ -262,22 +327,30 @@ filter(time > 0.2, area_leaf_av > 1, area_leaf_av < 100) %>%
 
 # 3.a. vary two traits at once: LMA/narea
 ```{r}
-lmas <- c(0.07, 0.24, 0.5)
-nareas <- c(0.00187, 0.003, 0.005)   #x and y equal length, or one vector of length 1 will get repeated
+lma_narea <- expand_grid(lma=c(0.07, 0.24, 0.5), narea=c(0.00187, 0.003, 0.005)) %>% rowwise()
+stands <- map2(lma_narea$lma, lma_narea$narea, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), narea = .y), .id="run")
 
-lmas_nareas <- map2(lmas, nareas, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), narea = .y), .id = "run")
+stands_totals <- stands %>% map_dfr(~.x$patch_total, .id = "run")
 
-lmas_nareas_totals <- lmas_nareas %>% map_dfr(~.x$patch_total, .id = "run") 
-## anonymous function takes .x from before pipe and feeds into $patch_total, .x is the lmas_hmats object, map_dfr needs a function so can't just do map_dfr(lmas_hmats$patch_total)
-lmas_nareas_expandsp <- lmas_nareas %>% map_dfr(~.x$patch_expand$species, .id = "run")
+stands_totals %>%
+mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
+  filter(time>0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() + facet_wrap(~run)
 
-lmas_nareas_totals %>%
+stands_totals %>%
   filter(time > 0.2) %>%
   ggplot(aes(time, area_leaf, col=run)) + 
   geom_line() +
   theme_classic()
 
-lmas_nareas_totals %>%
+stands_totals %>%
   filter(time > 0.2) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
@@ -285,7 +358,7 @@ lmas_nareas_totals %>%
   scale_y_log10() +
   theme_classic()
 
-lmas_nareas_totals %>%
+stands_totals %>%
   filter(time > 0.2, area_stem_av > 1e-06, area_stem_av < 1e0) %>%
   ggplot(aes(area_stem_av, individuals, col=run)) + 
   geom_line() +
@@ -293,8 +366,14 @@ lmas_nareas_totals %>%
   scale_y_log10() +
   theme_classic()
 
-p1 = lmas_nareas_expandsp %>% filter(run == 1) %>% plot_size_distribution()
+stands_expandsp <- stands %>% map_dfr(~.x$patch_expand$species, .id = "run")
+p1 = stands_expandsp %>% filter(run == 1) %>% plot_size_distribution()
 
+stands_totals %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, mass_total, col=run)) + 
+  geom_line() +
+  theme_classic()
 ```
 
 
@@ -305,6 +384,19 @@ tradeoffs_runs <- pmap(tradeoffs, ~grow_tidy_expand_totals(traits=trait_matrix(.
 
 tradeoffs_values <- tradeoffs_runs %>% map_dfr(~.x$patch_total, .id = "run")
 tradeoffs_expand <- tradeoffs_runs %>% map_dfr(~.x$patch_expand$species, .id="run")
+
+tradeoffs_values %>%
+mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
+  filter(time > 0.2, area_stem_av >1e-07, area_stem_av < 1e-00) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) + 
+  geom_line() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() + facet_wrap(~run)
+
 
 tradeoffs_values %>%
   filter(time > 0.2, area_stem_av >1e-07, area_stem_av < 1e-00) %>%
@@ -339,6 +431,14 @@ mort_values %>%
   ggplot(aes(time, area_leaf, col=run)) +
   geom_line()
 
+mort_values %>%
+  filter(time>0.2) %>%
+  ggplot(aes(area_stem_av, individuals, col=run)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
 
 ```
 
@@ -346,16 +446,16 @@ mort_values %>%
 ## Visualise tradeoffs
 ## LMA vs k_l -- rate of leaf turnover * (LMA/mean LMA) ^ scaling exponent
 ```{r}
+
 expand_grid(lma = seq(0.07, 2.5, by=0.02), B_kl2=c(0.5,1.5)) %>% rowwise() %>%
   mutate(
-    lma_ll=map2_dbl(lma, B_kl2, ~.x*(0.07/0.1978791)^.y)
+    lma_ll=map2_dbl(lma, B_kl2, ~.x*(0.07/0.1978791)^(.y))
   ) %>% 
-  ggplot(aes(lma, lma_ll, col=as.character(B_kl2))) + 
+  ggplot(aes(lma, -lma_ll, col=as.character(B_kl2))) + 
   geom_line() +
   theme_classic() +
   xlab("LMA kg/m^2") +
-  ylab("LMA - LL trade-off")
-
+  ylab("Leaf turnover rate [/yr]")
 
 ```
 
@@ -363,7 +463,7 @@ expand_grid(lma = seq(0.07, 2.5, by=0.02), B_kl2=c(0.5,1.5)) %>% rowwise() %>%
 ## Amax: max assimilation, Narea & photosynthesis and respiration rates  [mol / d / m2]
 ```{r}
 # Respiration and Amax
-amax_resp <- expand_grid(narea = seq(0.00187, 0.0031, by=0.0001), B_lf5 = c(1, 2), B_lf4 = c(19000, 21000, 23000)) %>%
+amax_resp <- expand_grid(narea = seq(0.00187, 0.0031, by=0.0001), B_lf5 = c(1, 2), B_lf4 = c(20000, 22000)) %>% rowwise() %>%
   mutate(
     amax=map2_dbl(narea, B_lf5, ~0.8273474*(.x/1.87e-3)^.y),
     resp=map2_dbl(narea, B_lf4, ~.y*(.x/0.08))
@@ -401,25 +501,42 @@ p0 <- ggplot(DI_KS, aes(rho, DI, col=as.character(B_dI2))) +
   geom_line() +
   theme_classic() +
   xlab("wood density [kg/m^3]") +
-  ylab("WD - DI Mortality trade-off")
+  ylab("DI Mortality [/yr]")
 
 p00 <- ggplot(DI_KS, aes(rho, KS, col=as.character(B_ks2))) + 
   geom_line() +
   theme_classic() +
   xlab("wood density [kg/m^3]") +
-  ylab("WD - wood turnover rate trade-off")
+  ylab("wood turnover rate [/yr]")
 
 p0 + p00
 
 ```
 
 
+Questions...
+
+Where to from here?
+
+Traits & trade-offs as indicators/drivers of differences?
+
+Role of environment and site in thinning outcomes?
+
+Growth-dependent vs independent mortality? Instantaneous mortality rate
+
+Variation in stand dynamics e.g. leaf area, # individuals, but thinning doesn't change much
+
+total biomass-space limits, biomass accumulation?
+
+relative thinning rates where 2 species competing?
+
+how intense is competition, mortality rates...?
 
 
 
 
 
-extra stuff...
+random code stuff...
 ```{r}
 
 
@@ -428,9 +545,6 @@ data_amax <- expand_grid(narea = seq(0.00187, 0.0031, by=0.0001), B_lf5 = c(1, 2
   mutate(
     amax=amax_tradeoffs(narea = narea, B_lf5=B_lf5)
     )
-
-
-
 
 
 k_l_tradeoffs <- function(lma_0 = 0.1978791,
@@ -451,4 +565,8 @@ expand_grid(lma = seq(0.07, 2.5, by=0.02), B_kl2=c(0.5,1.5)) %>% rowwise() %>%
   xlab("LMA kg/m^2") +
   ylab("LMA - LL trade-off")
 
+
+
+
+#(consider size structured density per unit time?)
 ```
