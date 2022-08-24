@@ -1,0 +1,278 @@
+---
+title: "Self-thinning plots"
+output: html_document
+date: '2022-08-10'
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results='hide')
+```
+
+```{r, eval = FALSE}
+remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+```
+
+```{r load libraries}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+library(ggrepel)
+library(scatterplot3d)
+source("../self-thinning/R/grow_tidy_expand_totals")
+source("../self-thinning/R/base_params function.R")
+source("../self-thinning/R/run_mypatch.R")
+source("../self-thinning/R/grow_plot function.R")
+source("../self-thinning/R/thinning_plot.R")
+source("../self-thinning/R/find_closest_timestamps.R")
+```
+
+```{r activate logger}
+plant_log_console()
+```
+
+## add time labels to plots
+```{r}
+find_closest <- function(x, at){
+  
+out <- rep("", length(x))  
+
+for(a in at){
+  dist <- abs(x-a)
+  i <- which(dist == min(dist))
+  out[i] <- a
+  } 
+out
+}
+```
+
+## LMA STANDS:
+```{r setup, include=FALSE}
+lma_runs <- 
+    c(0.07, 0.24, 0.5) %>% 
+    map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")), .id="run")
+
+lma_totals <-
+  lma_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = '0.07', '2' = '0.24', '3' = '0.5'))
+```
+## NAREA STANDS:
+```{r}
+narea_runs <- c(0.00187, 0.005, 0.01) %>% map(~grow_tidy_expand_totals(narea = .x), .id="run")
+
+narea_total <- narea_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = '0.00187', '2' = '0.005', '3' = '0.01'))
+```
+## HMAT STANDS:
+```{r}
+hmat_runs <- c(5, 10, 25, 40) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "hmat")))
+hmat_total <-
+  hmat_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = '5', '2' = '10', '3' = '25', '4' = '40'))
+```
+## WD STANDS:
+```{r}
+wd_runs <- c(300, 600, 800) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "rho")))
+
+wd_total <-
+  wd_runs %>% map_dfr(~.x$patch_total, .id = "run")
+```
+## SM STANDS:
+```{r}
+seed_mass_runs <- c(0.00001, 0.001, 0.01) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "omega")))
+
+seed_mass_totals <-
+  seed_mass_runs %>% map_dfr(~.x$patch_total, .id = "run") %>% 
+  mutate(run = recode(run, '1' = '0.00001', '2' = '0.001', '3' = '0.01'))
+```
+
+## STLs
+```{r}
+lma_totals %>%
+  filter(height > 0.05) %>%
+  mutate(
+    diameter = diameter_stem_av*100, 
+    density=density*10000
+    ) %>% 
+  ggplot(aes(diameter_stem_av, density, col = run)) +
+  geom_line() + 
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: LMA vs LL trade-off")
+
+
+narea_total %>%
+  filter(height > 0.05) %>%
+  mutate(
+    diameter = diameter_stem_av*100, 
+    density=density*10000
+    ) %>% 
+  ggplot(aes(diameter_stem_av, density, col = run)) +
+  geom_line() + 
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: N_area trade-off")
+
+
+hmat_total %>%
+  filter(height > 0.05) %>%
+  mutate(
+    diameter = diameter_stem_av*100, 
+    density=density*10000
+    ) %>% 
+  ggplot(aes(diameter_stem_av, density, col = run)) +
+  geom_line() + 
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: HMAT trade-off")
+
+
+wd_total %>%
+  filter(height > 0.05) %>%
+  mutate(
+    diameter = diameter_stem_av*100, 
+    density=density*10000
+    ) %>% 
+  ggplot(aes(diameter_stem_av, density, col = run)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: WD trade-off")
+
+
+seed_mass_totals %>%
+  filter(height > 0.05) %>%
+  mutate(
+    diameter = diameter_stem_av*100, 
+    density=density*10000
+    ) %>% 
+  ggplot(aes(diameter_stem_av, density, col = run)) +
+  geom_line() + 
+  geom_line(data = fitted_trouve, colour = "dark grey") +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 16) +
+  ggtitle("Self-thinning lines: Seed Mass trade-off")
+
+```
+
+## Time-labelled STLs without Trouve et al data (or my_label not working)
+```{r}
+thinning_plot <- function(data, xvar, xlims,  xlab=xvar, ylims =c(1E-4, 1E0), title="") {
+  
+  data[["x"]] <- data[[xvar]] ##which column name for what we want to plot against density
+  
+  data %>% 
+    filter(time > 0.1) %>%
+    mutate(
+      my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))     
+      ) %>%
+  ggplot(aes(x, density, col=run, label=my_label)) + 
+  geom_line() + 
+  geom_text_repel(arrow = arrow(length = unit(0.01, "npc")), box.padding = 0.3, max.overlaps = getOption("ggrepel.max.overlaps", default = 20)) +
+  #geom_text(nudge_x = 0, nudge_y = 0.1) +
+  scale_x_log10(limits=xlims, name=xlab) +
+  scale_y_log10(limits=ylims, name = "Density (/m2)") +
+  theme_classic(base_size = 18) +
+  ggtitle(title)
+}
+
+thinning_plot(lma_totals, "diameter_stem_av", c(0.02, 0.5), "Stem Diameter (m)", title = "Self-thinning lines: LMA vs LL trade-off")
+thinning_plot(narea_total, "diameter_stem_av", c(0.02, 0.5), "Stem Diameter (m)", title = "STL: Leaf Nitrogen trade-off")
+thinning_plot(wd_total, "diameter_stem_av", c(0.02, 0.5), "Stem Diameter (m)", title = "STL: Wood Density trade-off")
+p3 = thinning_plot(seed_mass_totals, "diameter_stem_av", c(0.02, 1.0), "Stem Diameter (m)", title = "STL: Seed Mass trade-off")
+
+
+
+################ plots before plot function ################################################
+
+  lma_totals %>%
+  filter(time > 0.1) %>%
+  mutate(
+      my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))     
+      ) %>%
+  ggplot(aes(diameter_stem_av, density, col=run, label=my_label)) + 
+  geom_line() + 
+  geom_text_repel() +
+  #geom_text(nudge_x = 0, nudge_y = 0.1) +
+  scale_x_log10(limits=c(0.03, 0.5)) +
+  scale_y_log10(limits=c(1E-4, 1E0)) +
+  theme_classic() +
+  ggtitle("Self-thinning lines: LMA vs LL trade-off")
+
+
+  narea_total %>%
+  filter(time > 0.2) %>%
+  mutate(
+      my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))     
+      ) %>%
+  ggplot(aes(diameter_stem, density, col=run)) + 
+  geom_line() +
+  ##geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: N_area trade-off")
+
+
+hmat_total %>%
+  filter(time > 0.2) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
+  ggplot(aes(diameter_stem_av, density, col=run)) + 
+  geom_line() +
+  ##geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: HMAT trade-off")
+
+
+wd_total %>%
+filter(time > 0.2, diameter_stem_av > 0.03) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
+  ggplot(aes(diameter_stem/density, density, col=run)) + 
+  geom_line() +
+  ##geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: WD trade-off")
+
+
+seed_mass_totals %>%
+filter(time > 0.2, diameter_stem_av > 1e-02) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
+  ggplot(aes(diameter_stem_av, density, col=run, label=my_label)) + 
+  geom_line() + 
+  geom_text_repel(arrow = arrow(length = unit(0.01, "npc")), box.padding = 0.5, max.overlaps = getOption("ggrepel.max.overlaps", default = 28)) +
+  ##geom_text_repel(max.overlaps = getOption("ggrepel.max.overlaps", default = 18)) +
+  scale_x_log10() +
+  scale_y_log10() +
+  xlab("Stem diameter (m)") +
+  ylab("Density (/m^2)") +
+  theme_classic(base_size = 18) +
+  ggtitle("STL: Seed Mass trade-off")
+
+geom_text_repel(arrow = arrow(length = unit(0.01, "npc")), box.padding = 0.3, max.overlaps = getOption("ggrepel.max.overlaps", default = 20)) +
+
+```
+
+```{r}
+LMA_PLOT + NAREA_PLOT + WD_PLOT + SM_PLOT
+
+LMA_PLOT2 + NAREA_PLOT2 + WD_PLOT2 + SM_PLOT2
+```
+

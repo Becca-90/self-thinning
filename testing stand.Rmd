@@ -1,0 +1,599 @@
+---
+title: "Model assessment"
+output: html_document
+date: '2022-07-28'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results='hide')
+```
+
+```{r, eval = FALSE}
+remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+```
+
+```{r load libraries}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+library(ggrepel)
+library(scatterplot3d)
+source("../self-thinning/R/grow_tidy_expand_totals")
+source("../self-thinning/R/base_params function.R")
+source("../self-thinning/R/run_mypatch.R")
+source("../self-thinning/R/grow_plot function.R")
+source("../self-thinning/R/thinning_plot.R")
+source("../self-thinning/R/plot_stand.R")
+source("../self-thinning/R/find_closest_timestamps.R")
+```
+
+```{r activate logger}
+plant_log_console()
+```
+
+
+# Here we will systematically analyse and test all aspects of model implementation (varied stand permutations) and also compare with real-world datasets
+
+## First, grow a stand - relatively unaltered in terms of varifying trait and other preset values
+
+## Initial seed rain is 200, a_l1 = 2.17 (height of plant with LA 1m^2), a_l2 = 0.5 (exponent of relationship between height and LA), lma = 0.1978791, rho = 608, hmat = 16.59587, recruitment decay = 5, ...
+```{r}
+examplestand <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.001)
+
+# We removed integration part of grow_tidy_expand_totals function, checked integrations match up:
+# Patch 1 using integrate_over_size_distribution() function, Patch 2 using plant:::trapezium function directly: 
+
+patch_total1 <- 
+  examplestand$patch_expand$species %>% 
+  integrate_over_size_distribution() %>%
+    mutate(
+      # create average sizes
+      across(c(diameter_stem, area_stem, area_leaf, height, mass_above_ground), ~.x/density, 
+      .names = "{.col}_av")
+    )
+
+patch_total2 <- 
+  examplestand$patch_expand$species %>% 
+  na.omit() %>% 
+  filter(step>1) %>% 
+  group_by(step, species) %>% 
+  summarise(
+    density2 = -plant:::trapezium(height, density),
+    diameter_stem_av = -plant:::trapezium(height, density * diameter_stem)/ density2
+  )%>% ungroup()
+
+bind_cols(patch_total1 %>% select(density, diameter_stem_av), patch_total2)
+
+patch_total1 %>%
+  ggplot(aes(time, density)) +
+  geom_line()
+
+patch_total1 %>%
+  ggplot(aes(time, area_leaf)) +
+  geom_line()
+
+## both stands give same totals output
+```
+
+
+# Create some data using trouve et al stand data with one species' slope and intercept values obtained from 4 different statistical models
+## intercept values are logged so take exponential
+```{r}
+fitted_trouve <-
+  tibble(
+  slope = c(-1.52, -1.42,-1.56, -1.57),
+  intercept = c(12.07, 11.29, 12.21, 12.26) %>% exp(),
+  species = seq_len(4)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "trouve_et_al")
+```
+
+# Data using Condes et al stand data with species slope and intercept values obtained for 2 species (pine, beech) in 6 locations (12 sets of slope values)
+## Take natural log of intercepts
+## Max stand denstiy index i.e. max # stems per hectare for reference QMD of 25cm
+```{r}
+fitted_condes <-
+  tibble(
+  slope = c(-1.545, -1.539, -2.226, -1.494, -1.592, -1.704, -1.918, -1.469, -2.244, -1.850, -1.831, -1.720),
+  intercept = c(190722, 154611, 1213554, 127071, 185631, 210150, 577162, 110800, 1615685, 341925, 428430, 254156) %>% log(), species = c(rep(1, 6), rep(2, 6))
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "condes_et_al")
+```
+
+# Data using Weiskittel, Gould & Temesgen stand data with species slope and intercept values obtained for 3 species (Douglas-fir, Red alder, Western hemlock) using OLS & SFA methods
+## density: trees per ha, mean tree size: QMD -- both log transformed
+```{r}
+fitted_wgt <-
+  tibble(
+  slope = c(-1.2618, -1.5473, -1.1133, -1.2208, -1.6545, -1.7336),
+  intercept = c(10.7509, 11.2087, 9.7315, 10.8665, 12.1299, 13.0391) %>% exp(),
+  species = c(1, 1, 2, 2, 3, 3)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "weisk_gould_temes")
+```
+
+# Data using Rivoire and Le Moguedec
+## Oak, beech and spruce modelled with stochastic frontier estimation & generalised
+## optimisation (-spruce intercept n.a.) (5 STLs)
+```{r}
+fitted_riv_mog <-
+  tibble(
+  slope = c(-1.77, -1.76, -1.60, -1.86, -1.59),
+  intercept = c(12.22, 11.69, 11.78, 12.17, 11.99) %>% exp(),
+  species = c(1, 1, 2, 2, 3)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "rivoire_moguedec")
+```
+
+# Gosper Euc data: E. salubris y = 4.15 - 1.33x
+## density per ha, QMD at 10cm above base
+```{r}
+fitted_gosper <- 
+  tibble(
+  slope = -1.33,
+  intercept = 4.15 %>% exp(), species = seq_len(1)
+  ) %>%
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "gosper")
+```
+
+# More data?
+```{r}
+fitted_other <-
+  tibble(
+  slope = c(),
+  intercept = c() %>% exp(),
+  species = seq_len(4)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = )
+```
+
+# Plot self-thinning lines from compilation of datasets of major studies plotted with modelled STL
+## grouped by study, want study + species
+```{r}
+examplestand2 <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.001)
+
+prev_studies <- as_tibble(bind_rows(fitted_condes, fitted_gosper, fitted_trouve, fitted_riv_mog, fitted_wgt))
+
+examplestand2$patch_total %>%
+  mutate(
+    diameter = diameter_stem_av*100, 
+    density=density*10000,
+    study = "plant_model"
+    ) %>% 
+  ggplot(aes(diameter_stem_av, density, group = study, col = study)) +
+  geom_line() + 
+  geom_abline(intercept = 1, slope = -3/2, linetype = "dashed") +
+  geom_line(data = prev_studies) +
+  scale_x_log10(limits = c(1e-03, 1e03)) +
+  scale_y_log10() +
+  theme_classic(base_size = 18) +
+  ggtitle("Self-thinning plot") +
+  xlab("Average Stem Diameter (m)") +
+  ylab("Density")
+
+plot_size_distribution(examplestand2$patch_expand$species)
+```
+
+
+# Check key measures over time for each stand - total LA, biomass, heights, density
+## DI mortality
+```{r}
+plot_stand(dI_total, xvar = "time", yvar = "density", title="Total individuals over time")
+
+plot_stand(dI_total, xvar = "time", yvar = "area_leaf", title="Total Leaf Area over time")
+
+plot_stand(dI_total, xvar = "time", yvar = "height_av", title="Average height over time")
+
+plot_stand(dI_total, xvar = "time", yvar = "mass_total", title="Total mass over time")
+
+plot_stand(dI_total, xvar = "time", yvar = "diameter_stem_av", title="Average stem diameter over time")
+
+```
+
+
+# We want to test the effect of varying below model parameters on self-thinning lines
+
+# Initial seed rain is 200, a_l1 = 2.17 (height of plant with LA 1m^2), a_l2 = 0.5, k_l = 0.5, lma = 0.1978791, rho = 608, hmat = 16.59587, recruitment decay = 5, ...
+
+## a_l1: Height of plant with leaf area of 1m^2 - default = 2.17
+## a_l2: Exponent of relationship between height and leaf area - default = 0.5
+## birth rate: default = 200
+## k_l: Turnover rate for leaves per year - default = 0.4565855
+## b_lf1: Potential CO2 photosynthesis at average leaf nitrogen, ν0, mol per day
+##        per m^2 - default = 0.8273474
+## b_lf2: Curvature of light response curve - default = 0.5
+## d_I: Intrinsic or growth-independent mortality per year - default = 0.01
+
+
+## Checking values with a_l1
+### 2, 3, 5
+```{r}
+al1_runs <- c(2, 3, 5) %>% set_names(.) %>% map(~grow_tidy_expand_totals(a_l1 = .x))
+
+al1_total <-
+  al1_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = 'a_l1 = 2', '2' = 'a_l1 = 3', '3' = 'a_l1 = 5'))
+
+##################### ##################### #####################
+  p0_1 <- scm_base_parameters("FF16")
+  p0_1$strategy_default$a_l1 <- 1
+  p0_1$strategy_default$a_l2 <- 0.5
+  p0_1$strategy_default$recruitment_decay <- 5
+  
+  control = scm_base_control()
+  control$ode_tol_rel <- 1e-4
+  control$ode_tol_abs <- 1e-4
+  control$schedule_eps <- 0.0005
+  
+  patch1 <- run_mypatch_edit(p0 = p0_1, ctrl = control) %>%
+    tidy_patch() %>%
+    FF16_expand_state()
+  
+  patch1_total <- 
+    patch1$species %>% 
+    integrate_over_size_distribution() %>%
+    mutate(
+        diameter_stem = (2 * sqrt (area_stem / pi)),
+        diameter_stem_av = diameter_stem/density,
+        across(c(diameter_stem, area_stem, area_leaf, height, mass_above_ground), 
+        ~.x/density, .names = "{.col}_av")
+    )
+
+p1 = patch1_total %>%
+  filter(time > 2) %>%
+  ggplot(aes(diameter_stem_av, density)) + 
+  geom_line() + 
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 16) +
+  ggtitle("a_l1 (height of plant with LA of 1m^2) = 2m")
+  
+##################### ##################### #####################
+  p0_2 <- scm_base_parameters("FF16")
+  p0_2$strategy_default$a_l1 <- 3
+  p0_2$strategy_default$a_l2 <- 0.5
+  p0_2$strategy_default$recruitment_decay <- 5
+  
+  control = scm_base_control()
+  control$ode_tol_rel <- 1e-4
+  control$ode_tol_abs <- 1e-4
+  control$schedule_eps <- 0.0005
+  
+  patch2 <- run_mypatch_edit(p0 = p0_2, ctrl = control) %>%
+    tidy_patch() %>%
+    FF16_expand_state()
+  
+  patch2_total <- 
+    patch2$species %>% 
+    integrate_over_size_distribution() %>%
+    mutate(
+        diameter_stem = (2 * sqrt (area_stem / pi)),
+        diameter_stem_av = diameter_stem/density,
+        across(c(diameter_stem, area_stem, area_leaf, height, mass_above_ground), 
+        ~.x/density, .names = "{.col}_av")
+    )  
+  
+  p2 = patch2_total %>%
+    filter(time > 2) %>%
+    ggplot(aes(diameter_stem_av, density)) + 
+    geom_line() + 
+    scale_x_log10() +
+    scale_y_log10() +
+    theme_classic(base_size = 16) +
+    ggtitle("a_l1 (height of plant with LA of 1m^2) = 3m")
+  
+##################### ##################### #####################
+  p0_3 <- scm_base_parameters("FF16")
+  p0_3$strategy_default$a_l1 <- 5
+  p0_3$strategy_default$a_l2 <- 0.5
+  p0_3$strategy_default$recruitment_decay <- 5
+  
+  control = scm_base_control()
+  control$ode_tol_rel <- 1e-4
+  control$ode_tol_abs <- 1e-4
+  control$schedule_eps <- 0.0005
+  
+  patch3 <- run_mypatch_edit(p0 = p0_3, ctrl = control) %>%
+    tidy_patch() %>%
+    FF16_expand_state()
+  
+  patch3_total <- 
+    patch3$species %>% 
+    integrate_over_size_distribution() %>%
+    mutate(
+        diameter_stem = (2 * sqrt (area_stem / pi)),
+        diameter_stem_av = diameter_stem/density,
+        across(c(diameter_stem, area_stem, area_leaf, height, mass_above_ground), 
+        ~.x/density, .names = "{.col}_av")
+    ) 
+
+p3 = patch3_total %>%
+    filter(time > 2) %>%
+    ggplot(aes(diameter_stem_av, density)) + 
+    geom_line() + 
+    scale_x_log10() +
+    scale_y_log10() +
+    theme_classic(base_size = 16) +
+    ggtitle("a_l1 (height of plant with LA of 1m^2) = 5m")
+```
+
+## Checking values with a_l2
+### 0.3, 0.5, 0.8
+```{r}
+al2_runs <- c(0.3, 0.5, 0.8) %>% set_names(.) %>% map(~grow_tidy_expand_totals(p = base_params(a_l2 = .x)))
+
+al2_total <-
+  al2_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = 'a_l2 = 0.3', '2' = 'a_l2 = 0.5', '3' = 'a_l2 = 0.8'))
+
+##################### ##################### #####################
+  p0_11 <- scm_base_parameters("FF16")
+  p0_11$strategy_default$a_l1 <- 2.17
+  p0_11$strategy_default$a_l2 <- 0.3
+  p0_11$strategy_default$recruitment_decay <- 5
+  
+  control = scm_base_control()
+  control$ode_tol_rel <- 1e-4
+  control$ode_tol_abs <- 1e-4
+  control$schedule_eps <- 0.0005
+  
+  patch11 <- run_mypatch_edit(p0 = p0_11, ctrl = control) %>%
+    tidy_patch() %>%
+    FF16_expand_state()
+  
+  patch11_total <- 
+    patch11$species %>% 
+    integrate_over_size_distribution() %>%
+    mutate(
+        diameter_stem = (2 * sqrt (area_stem / pi)),
+        diameter_stem_av = diameter_stem/density,
+        across(c(diameter_stem, area_stem, area_leaf, height, mass_above_ground), 
+        ~.x/density, .names = "{.col}_av")
+    )
+
+p11 = patch11_total %>%
+  filter(time > 2) %>%
+  ggplot(aes(diameter_stem_av, density)) + 
+  geom_line() + 
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 16) +
+  ggtitle("a_l2 = 0.1")
+  
+##################### ##################### #####################
+  p0_22 <- scm_base_parameters("FF16")
+  p0_22$strategy_default$a_l1 <- 2.17
+  p0_22$strategy_default$a_l2 <- 0.5
+  p0_22$strategy_default$recruitment_decay <- 5
+  
+  control = scm_base_control()
+  control$ode_tol_rel <- 1e-4
+  control$ode_tol_abs <- 1e-4
+  control$schedule_eps <- 0.0005
+  
+  patch22 <- run_mypatch_edit(p0 = p0_22, ctrl = control) %>%
+    tidy_patch() %>%
+    FF16_expand_state()
+  
+  patch22_total <- 
+    patch22$species %>% 
+    integrate_over_size_distribution() %>%
+    mutate(
+        diameter_stem = (2 * sqrt (area_stem / pi)),
+        diameter_stem_av = diameter_stem/density,
+        across(c(diameter_stem, area_stem, area_leaf, height, mass_above_ground), 
+        ~.x/density, .names = "{.col}_av")
+    )  
+  
+  p22 = patch22_total %>%
+    filter(time > 2) %>%
+    ggplot(aes(diameter_stem_av, density)) + 
+    geom_line() + 
+    scale_x_log10() +
+    scale_y_log10() +
+    theme_classic(base_size = 16) +
+    ggtitle("a_l2 = 0.5")
+  
+##################### ##################### #####################
+  p0_33 <- scm_base_parameters("FF16")
+  p0_33$strategy_default$a_l1 <- 2.17
+  p0_33$strategy_default$a_l2 <- 1
+  p0_33$strategy_default$recruitment_decay <- 5
+  
+  control = scm_base_control()
+  control$ode_tol_rel <- 1e-4
+  control$ode_tol_abs <- 1e-4
+  control$schedule_eps <- 0.0005
+  
+  patch33 <- run_mypatch_edit(p0 = p0_33, ctrl = control) %>%
+    tidy_patch() %>%
+    FF16_expand_state()
+  
+  patch33_total <- 
+    patch33$species %>% 
+    integrate_over_size_distribution() %>%
+    mutate(
+        diameter_stem = (2 * sqrt (area_stem / pi)),
+        diameter_stem_av = diameter_stem/density,
+        across(c(diameter_stem, area_stem, area_leaf, height, mass_above_ground), 
+        ~.x/density, .names = "{.col}_av")
+    ) 
+
+p33 = patch33_total %>%
+    filter(time > 2) %>%
+    ggplot(aes(diameter_stem_av, density)) + 
+    geom_line() + 
+    scale_x_log10() +
+    scale_y_log10() +
+    theme_classic(base_size = 16) +
+    ggtitle("a_l2 = 1")
+```
+
+## Checking values with birth rate
+### 100, 200, 300, 600
+### STLs are not affected by birth
+```{r}
+birth_rate_runs <- c(100, 200, 300, 600) %>% set_names(.) %>% map(~grow_tidy_expand_totals(birth_rate = .x))
+## why no difference? where is birthrate value to check?
+
+birth_rate_total <-
+  birth_rate_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = 'birth rate = 100', '2' = 'birth rate = 200', '3' = 'birth rate = 300', '4' = 'birth rate = 600'))
+
+thinning_plot(birth_rate_total, xvar = "diameter_stem_av", xlims = c(1e-04, 1e-01), ylims = c(1e-01, 50), ylab = "Stem Diameter (m)", title = "Self-thinning under varied birth rates")
+#something up with birth_rate? affecting seed decay?
+```
+
+## Checking values with k_l
+### 0.3, 1, 2, 2.7
+```{r}
+kl_runs <- c(0.3, 1, 2, 2.7) %>% set_names(.) %>% map(~grow_tidy_expand_totals(k_l = .x))
+
+kl_total <-
+  kl_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = 'k_l = 0.2', '2' = 'k_l = 0.4565855', '3' = 'k_l = 0.7', '4' = 'k_l = 0.9'))
+```
+
+## Checking values with b_lf1
+### 0.8273474, 3, 5, 7
+```{r}
+blf1_runs <- c(0.6, 0.8273474, 0.95) %>% set_names(.) %>% map(~grow_tidy_expand_totals(B_lf1 = .x))
+
+blf1_total <-
+  blf1_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = 'b_lf1 = 0.6', '2' = 'b_lf1 = 0.8273474', '3' = 'b_lf1 = 0.95'))
+```
+
+## Checking values with b_lf2
+### 0.25, 0.5, 0.8
+```{r}
+blf2_runs <- c(0.25, 0.5, 0.8) %>% set_names(.) %>% map(~grow_tidy_expand_totals(B_lf2 = .x))
+
+blf2_total <-
+  blf2_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = 'b_lf2 = 0.25', '2' = 'b_lf2 = 0.5', '3' = 'b_lf2 = 0.8'))
+```
+
+## Checking values with d_I
+### 0, 0.05, 0.1, 0.2
+### higher DI mortality leads to greater average stem diameter, 
+### density roughly same
+```{r}
+dI_runs <- c(0.01, 0.05, 0.1, 0.2) %>% set_names(.) %>% map(~grow_tidy_expand_totals(d_I = .x))
+
+dI_total <-
+  dI_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = 'd_I = 0', '2' = 'd_I = 0.05', '3' = 'd_I = 0.1', '4' = 'd_I = 0.2'))
+
+thinning_plot(dI_total, xvar = "diameter_stem_av", xlims = c(-0.02, 0.1), title = "Self-thinning under varied DI mortality")
+
+thinning_plot(birth_rate_total, xvar = "diameter_stem_av", xlims = c(0.02, 1.0), ylab = "Stem Diameter (m)", title = "Self-thinning under varied birth rates")
+```
+
+
+# We need to check selected trait values against empirical data
+## Woody plant trait values from Austraits database
+```{r}
+
+austraits <- read.csv("../self-thinning/austraits-3.0.2/traits.csv", header = TRUE)
+woodytraits <- read.csv("../self-thinning/austraits-3.0.2/woodiness_2022.03.19.csv", header = TRUE)
+
+sort(unique(austraits$trait_name)) # what traits are recorded?
+
+austraits <- woodytraits %>% select(taxon_name, woodiness_recoded) %>% right_join(austraits) %>% mutate(ID = row_number())
+
+wood_density_vals <- austraits %>% filter(trait_name == "wood_density", woodiness_recoded == "woody") %>% mutate(ID = row_number())
+leaf_N <- austraits %>% filter(trait_name == "leaf_N_per_area", woodiness_recoded == "woody") %>% mutate(ID = row_number())
+LMA_vals <- austraits %>% filter(trait_name == "???", woodiness_recoded == "woody")
+seed_mass_vals <- austraits %>% filter(trait_name == "seed_mass", woodiness_recoded == "woody", value < 100) %>% mutate(ID = row_number())
+## all_traits <- austraits %>% filter(trait_name == "wood_density" | trait_name == "leaf_N_per_area" | trait_name == "seed_mass", woodiness_recoded == "woody") %>% mutate(ID = row_number())
+
+## filter out woody stuff
+
+max(leaf_N$value)
+min(leaf_N$value)
+
+min(seed_mass$value)
+max(seed_mass$value)
+
+# plot range of trait values:
+
+ggplot(LMA_vals, aes(as.numeric(value))) + geom_histogram(binwidth = 0.25) + xlim(0, 25) + xlab("LMA g/m^2")
+ggplot(leaf_N, aes(as.numeric(value))) + geom_histogram(binwidth = 0.25) + xlim(0, 25) + xlab("N per unit leaf area g/m^2")
+ggplot(wood_density_vals, aes(as.numeric(value))) + geom_histogram(binwidth = 0.01) + xlab("Wood Density")
+ggplot(seed_mass_vals, aes(as.numeric(value))) + geom_histogram(binwidth=0.5) + xlab("Seed Mass")
+```
+
+## BAAD data
+```{r}
+baad_data <- read.csv("../self-thinning/baad_data.csv", header = TRUE)
+baad_data_dictionary <- read.csv("../self-thinning/baad_dictionary.csv", header = TRUE) %>% rbind()
+baad_data_dictionary$label
+
+## "light environment" = light, "age" = age, "leaf area" = a.lf, "height" = h.t, "stem area at base/breast height/crown base" = a.stba/a.stbh/a.stbc, "dbh" = d.bh, "leaf mass" = m.lf, "total mass" = m.to, "wood density" = r.st, "leaf mass per area" = ma.ilf, "aboveground mass" = m.so, "leaf [nitrogen]" = n.lf
+```
+
+# age vs LA
+```{r}
+# age vs LA values...
+
+baad_data %>%
+  ggplot(aes(age, a.lf, col = studyName)) +
+  geom_point(show.legend = FALSE) +
+  theme_classic()
+
+baad_data %>%
+  ggplot(aes(age, a.lf, col = studyName)) +
+  geom_point(show.legend = FALSE) +
+  geom_point(data = , )
+  theme_classic() +
+  xlim(0, 300) +
+  ylim(0, 800)
+```
+
+# DBH vs age
+```{r}
+baad_data %>%
+  ggplot(aes(age, a.lf, col = studyName)) +
+  geom_point(show.legend = FALSE) +
+  theme_classic()
+
+baad_data %>%
+  ggplot(aes(age, a.lf, col = studyName)) +
+  geom_point(show.legend = FALSE) +
+  geom_point(data = , )
+  theme_classic() +
+  xlim(0, 300) +
+  ylim(0, 800)
+```
+
+# DBH vs LA
+```{r}
+baad_data %>%
+  ggplot(aes(age, a.lf, col = studyName)) +
+  geom_point(show.legend = FALSE) +
+  theme_classic()
+
+baad_data %>%
+  ggplot(aes(age, a.lf, col = studyName)) +
+  geom_point(show.legend = FALSE) +
+  geom_point(data = , )
+  theme_classic() +
+  xlim(0, 300) +
+  ylim(0, 800)
+```

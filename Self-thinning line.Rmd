@@ -28,7 +28,10 @@ plant_log_console()
 ```
 
 
-## 1. Grow stand: high resolution cohort spacing + recruitment decay = 5
+# 1. Grow stand: higher resolution cohort spacing + recruitment decay = 0
+
+Plots shows the flow of individuals in the stand over time, the leaf area over time, and the self-thinning line that incorporates all individuals and successional groups including multiple thinning periods
+
 ```{r}
 no_rec <- grow_tidy_expand_totals(oderel=1e-4, odeabs=1e-4, scheps=0.0005, rec_decay=0)
 
@@ -53,8 +56,12 @@ no_rec$patch_total %>%
 
 ## 2. Self-thinnning Plot
 Average size over time. Get average size by dividing total of chosen size variable by the sum of individuals per unit area - we have mean stem area, mean stem diameter, mean height, mean mass above ground, and also mean LA
+#
+
 
 ```{r}
+allsteps <- grow_tidy_expand_totals(1e-5, 1e-5, 0.0001, 5)
+
 # self-thinning line:
 allsteps$patch_total  %>% 
   filter(time > 0.2) %>%
@@ -105,6 +112,10 @@ mort_values %>%
   ggplot(aes(time, area_leaf, col=run)) +
   geom_line()
 
+mort_expand <-
+  mort_runs %>% map_dfr(~.x$patch_expand$species, .id = "run")
+  
+mort_expand %>% filter(run == 1) %>% plot_size_distribution()
 
 ```
 
@@ -146,6 +157,24 @@ lma_values %>%
 
 
 #lma_runs[["patch_total"]], lma_runs$"0.07"$patch_total   =pull out stuff
+
+lma_values %>%
+  filter(time > 0.2, individuals > 1e-3) %>%
+  ggplot(aes(area_stem_av, individuals, col=run, label=time)) + 
+  geom_line() + 
+  geom_point(colour = case_when(lma_values$time %% 5 == 0 ~ "orange")) +
+  geom_text() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+
+for (i in 1:length(lma_values$time)) {
+  if (i %% 5 == 0)
+    print(i)
+}
+
+## use modulo for selecting points to mark in plot? if time divisible by 5, add point? every 5 years?
+## if statement... if time %% 5 = 0, -> mark point
 ```
 
 
@@ -504,7 +533,7 @@ p0 + p00
 
 leaf area declines over time.
 1. as you get taller, your shade tolerance decreases (see Falster et al 2018 "how functional traits..."). 
-So if Hmat is high, leaf area keeps decreasing,
+So if HMAT is high, leaf area keeps decreasing,
 background mortality keeps slowly killing plants, so varying background mortality kills things more/less
 
 higher costs, carbon budget decrease, less shade tolerance
@@ -573,42 +602,86 @@ narea_vals_norec %>%
 
 ```
 
+```{r}
+################################################################################
+# function below takes arguments x (the times), and at (the set of time values we want to ## mark). repeat for all values "", number of times = the length of x (795 times). 
+# for a in at (value in set), dist <- absolute value of time x - a in at values, 
+# i is which dist has the minimum value
+# keeps the a associated to the i with lowest dist
+# out all values
 
-
-Traits again...
-
-## STRATEGIES
-
-## how to implement some strategies? Can I call on the hyperparameter function??
-
-lma affects a few places in the model; see the source code, but only really for converting from leaf area to leaf mass (leaf mass being leaf area multiplied by leaf mass per unit leaf area). However, as a component of the leaf economic spectrum we imagine LMA as affecting a number of other components of the model.
-
-We capture this through what we call a “hyper-parameterisation”; additional parameters and functions that mean that changing one parameter might affect a number of other lower-level parameters. Our default hyper-parameterisation is via the FF16_hyperpar function:
-  FF16_hyperpar
-
-  FF16_hyperpar(trait_matrix(0.1, "lma"), FF16_Strategy())
-
-You will rarely need to call this function directly (see below) but note how setting of lma affects parameters k_l, a_p1 and r_l
-These are: * k_l: Turnover rate for leaves * a_p1: Leaf photosynthesis per area * r_l: Leaf respiration per mass
-
-This means that it is possible to implement different trade-offs between parameters relatively easily by modifying the hyper-parameterisation function in R, rather than having to modify the underlying physiological model in C++.
-
-To make use of the hyper-parameterisation, the preferred way of setting parameters is through the utility functions strategy and strategy_list. These take a Parameters object:
-
-  p <- FF16_Parameters()
-  identical(p$hyperpar, FF16_hyperpar)
-  class(p$strategy_default)
-
-This (FF16_Strategy) is the Strategy object that all others will be built from by difference. Running:
-
-  s <- strategy(trait_matrix(0.1, "lma"), p)
+find_closest <- function(x, at){
   
-will create a strategy s where lma is set but also all the parameters that depend on lma.
+out <- rep("", length(x))  
 
-  lma <- trait_matrix(seq(0.1, 0.5, length.out=5), "lma")
+for(a in at){
+  dist <- abs(x-a)
+  i <- which(dist == min(dist))
+  out[i] <- a
+  } 
+out
+}
 
-  FF16_hyperpar(trait_matrix(lma, "lma"), s)
+find_closest(x, at)
 
+################################################################################
+```
+Questions...
+
+Where to from here?
+
+Traits & trade-offs as indicators/drivers of differences?
+
+Role of environment and site in thinning outcomes?
+
+Growth-dependent vs independent mortality? Instantaneous mortality rate
+
+Variation in stand dynamics e.g. leaf area, # individuals, but thinning doesn't change much
+
+total biomass-space limits, biomass accumulation?
+
+relative thinning rates where 2 species competing?
+
+how intense is competition, mortality rates...?
+
+
+
+
+
+random code stuff...
+```{r}
+
+
+# 1. Amax with mutate:
+data_amax <- expand_grid(narea = seq(0.00187, 0.0031, by=0.0001), B_lf5 = c(1, 2)) %>% rowwise() %>%
+  mutate(
+    amax=amax_tradeoffs(narea = narea, B_lf5=B_lf5)
+    )
+
+
+k_l_tradeoffs <- function(lma_0 = 0.1978791,
+                lma = 0.1978791,
+                B_kl1=0.4565855,
+                B_kl2=1.71){
+  
+B_kl1 * (lma / lma_0) ^ (-B_kl2)
+
+}
+expand_grid(lma = seq(0.07, 2.5, by=0.02), B_kl2=c(0.5,1.5)) %>% rowwise() %>%
+  mutate(
+    lma_ll=k_l_tradeoffs(lma=lma, B_kl2 = B_kl2)
+  ) %>% 
+  ggplot(aes(lma, lma_ll, col=as.character(B_kl2))) + 
+  geom_line() +
+  theme_classic() +
+  xlab("LMA kg/m^2") +
+  ylab("LMA - LL trade-off")
+
+
+
+
+#(consider size structured density per unit time?)
+```
 
 ## Slope, Intercept, etc, values...
 ```{r}
@@ -618,3 +691,49 @@ will create a strategy s where lma is set but also all the parameters that depen
 ```
 
 #lma_runs[["patch_total"]]  #pull out stuff
+
+## leaf area declines over time.
+1. as you get taller, your shade tolerance decreases (see Falster et al 2018 "how functional traits..."). 
+So if Hmat is high, leaf area keeps decreasing, higher maintenance costs, lower carbon budget
+background mortality keeps slowly killing plants, so varying background mortality kills things more/less
+
+higher costs, carbon budget decrease, less shade tolerance
+min light level at which can survive getting higher
+thinning budgets 
+
+pushing plants to zero carbon budget the greater the HMAT gets
+
+resource or light compensation point as function of height - solve for this
+
+
+## Compute the whole plant light compensation point for a single plant.
+p: A PlantPlus, with strategy, height, etc set. PlantPlus removed...
+```{r}
+
+lcp_whole_plant(p, ...)
+resource_compensation_point(p)
+
+
+indv_FF16 <- FF16_Individual(s = FF16_Strategy())
+indv_FF16$set_state("height", 10)
+
+plant <- grow_individual_to_time(indv_FF16, times=seq(0,50,length.out=101), env = FF16_fixed_environment(0.8))
+
+## want to plot individual plant growing with height vs light compensation point (i.e. as plant grows taller, higher maintenance costs, also more income, what is the light environment at each height that is required to achieve equal cost/benefit)
+
+
+ 
+plant_envs <- seq(, , by = ) %>% set_names(.) %>% map(~grow_individual_to_time(indv_FF16, times=seq(0,0.5,length.out=101), env = FF16_fixed_environment()
+
+
+plant_state_envs <- 
+  plant_envs %>% map_dfr(~.x$state, .id = "run") %>%
+  mutate(time = seq(0, 50, by=0.5))
+
+
+ggplot(plant_state_envs, aes(x = time, y = , col=run)) +
+  geom_line() +
+  theme_classic()
+
+```
+

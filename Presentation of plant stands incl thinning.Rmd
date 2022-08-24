@@ -1,0 +1,482 @@
+---
+title: 'Forest dynamics - focus: self-thinning'
+author: "Rebecca Stolper"
+date: "8 April 2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results='hide')
+```
+
+```{r, eval = FALSE}
+remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+```
+
+```{r load libraries}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+library(ggrepel)
+source("R/grow_tidy_expand_totals.R")
+source("R/base_params function.R")
+source("R/run_mypatch.R")
+source("R/grow_plot function.R")
+source("R/thinning_plot.R")
+source("../self-thinning/R/find_closest_timestamps.R")
+```
+
+```{r activate logger}
+plant_log_console()
+```
+
+# 'plant' - a size-structured individual-based model for simulating forest stands
+
+## system of equations: growth, mortality and fecundity
+
+'plant' models forest dynamics through a system of equations that describe rates of growth, mortality and fecundity. Each of these processes is a function of an individual's traits (x), it's size via height (H), and their particular light environment $E_{a}(z)$. 
+
+$E_{a}(z)$ is a function of one's total amount of leaf area and how it is distributed along the z-axis from the top of the canopy where light environment is at 100% saturation moving down where the effects of shading (from neighbours and oneself) are experienced.
+
+The system of equations is solved for all individuals across time steps through the life of the stand, leading to a dynamically changing density of individuals over a size distribution. The stand can be represented with cohorts as below, where the density of each line reflects the cohort density, i.e. as the line becomes lighter, fewer are surviving. Successional groups can be seen coming into the stand as environmental conditions allow for the growth of new seedlings.
+
+# Self-thinning
+## Mortality due to the effects of competition on individuals' growth and survival in a crowded, resource-limited stand
+
+We obtain the self-thinning line from a size-structured non-finite population growing through time. The model will be run under a series of scenarios for different species and environmental states
+
+
+1. The "self-thinning line" is obtained when we plot $N_{T}$, the total number of individuals, of each time point per unit area, against $\overline S$, their mean size (e.g. via their height or stem diameter). Scaling these axes by $log_{10}$ produces a straight "thinning line". The total number of individuals across the size spectrum at each time point, and the total and mean plant size is obtained through the following integrals:
+
+$$ N_{T}= \int_{S_{0}}^{S_{MAX}}N(S)ds.....S_{T} = \int_{S_{0}}^{S_{MAX}} S.N(S)ds.....\overline{S} = \frac{S_{T}}{N_{T}} $$
+i.e. we get a size-density plot ($N_{T}$ vs $\overline S$) using values for all points through time which forms the trajectory of the line. 
+
+a. To get $N_{T}$, we integrate N from initial to max size to get the total number of individuals of all sizes. The integration is done for each step (a very short period) through time. i.e. we calculate the area under the curve from S = 0 to max S at time step 1, then the area under the curve from S = 0 to max S at time step 2, etc. 
+
+b. Integrating: $S.N(S)$, each size value times the # of individuals of that size: from initial to max size, and mean size, $\overline S$, is simply the average of the total quantity of size, so total height, divided by total number of individuals $N_{T}$. We obtain $\overline S$ for our self-thinning line, by dividing the total size by total density, for each step
+
+
+2. We cannot use the cohort data but rather must extract the individual size and age data for the self-thinning dynamic to be observed. The integration must be weighted by the number of individuals in each size/age class.
+
+3a. We can improve our approximation by integrating with shorter time steps across the regions under the size-density curve we are interested in, accounting for $N_{T}$ and $\overline S$ for each separate size class. In doing so, we are able to account for the continual influx of saplings which would otherwise skew our mean height and density data, and thus focus on the larger individuals that are growing into maturity. This can be done with the following integral and its approximate sum:
+
+$$ \overline{H}=\int_0^\infty \frac{ Hn(H,t)}{N(t)}dt \simeq \frac{\sum H_{i}n(H_{i},t)(H_{i}-H_{i-1})}{\sum n(H_{i},t)(H_{i}-H_{i-1})} = \frac{\sum H_{i}}{K}$$
+Not all our sub-intervals of integration are equal in size/width, as the time steps in the initial stand phase are much shorter to account for the extremely dynamic nature of this period and to capture all of this detail. We cannot take K to be a sum of equal (Hi - (Hi-1)) time segments. And the regular introduction of new individuals at different times means that we need to determine the density per height segment (Hi-(Hi-1)) per unit area, #/H/m^2
+
+
+b. Trapazoidal Rule in R → The Trapezoidal Rule is one of Closed Newton-Cotes formulas for approximating the definite integral of a function. We integrate by calculating and summing the areas of many consecutive trapezoids below our size-density curve, which gives a good approximation of the population dynamics in this case.
+
+
+c. Additionally, we select a cut-off point in the stand's age at which we stop allowing new individuals into the model (via "seed rain"). These new saplings likely emerge when older, larger plants die providing short periods of increased light and space, but they don't generally persist to compete with the mature stand. We also want to isolate the first wave of individuals for our analyses rather than incorporating all successional groups, for simplicity, and to understand the competition dynamics associated with the first, isolated, self-thinning event.
+
+# Trait-based trade-offs
+
+How well do traits explain differences in self-thinning across species? 
+
+## Leaf Mass per unit rea (LMA), Height at Maturity (HMAT), Wood Density (WD), Leaf Nitrogen per unit area (N)
+(with recruitment decay implemented to diminish seed rain)
+
+Each trade-off is implemented in the stand simulations below using 3 - 4 trait-values to reflect different plant strategies.
+Plots of leaf area and total biomass over time are shown, and self-thinning lines are plotted including time stamps to compare size-density outcomes reached for different stands. Some plots are included to show a closer look at the self-thinning lines, in which the differences are clearer.
+
+Note: Points for discussion and further analyses to complete - relatively small differences in intercept between self-thinning lines for the different trade-off values, log-log scale compressing differences?, rate of thinning i.e. speed along the line, greater impact of environment on thinning? Analyses in progress.
+
+## some fitted data from Trouve et al
+```{r}
+fitted_trouve <-
+  tibble(
+  slope = c(-1.52, -1.42,-1.56, -1.57),
+  intercept = c(12.07, 11.29, 12.21, 12.26) %>% exp(),
+  species = seq_len(4)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope)
+```
+
+## Trait comparison 1: 
+
+**LMA & Leaf Lifespan (LL)**
+
+- Thicker/denser & longer-lived leaves vs thinner/lighter leaves with higher turnover rate
+- run 1: 0.07, run 2: 0.24, run 3: 0.5 [kg/m^2]
+
+The below plots show how the LMA/LL trade-off affects the stand, in terms of the total amount of leaf area and mass over time, and the self-thinning process. The three runs represent different strategies; 1. higher LMA values = stronger, more long-lived leaves and resistant to stress, but which are more costly to produce, requiring greater carbon allocation, or 2. cheaper leaves, faster to produce, but which are lighter/thinner so less able to tolerate stress, die faster requiring more regular leaf production by the plant.
+
+Trait Values:
+N_AREA = 0.00187 kg/m^2
+WD = 700 kg/m^3
+LMA = 0.07, 0.24, 0.5 kg/m^2
+HMAT = 15m
+```{r}
+lma_runs <- 
+    c(0.07, 0.24, 0.5) %>% 
+    map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma")), .id="run")
+
+lma_totals <-
+  lma_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = '0.07', '2' = '0.24', '3' = '0.5'))
+
+lma_totals %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, area_leaf, col=run)) + 
+  geom_line() +
+  theme_classic() +
+  ggtitle("Leaf Area over Time")
+
+lma_totals %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, mass_total, col=run)) + 
+  geom_line() +
+  theme_classic() +
+  ggtitle("Total Mass over Time")
+
+find_closest <- function(x, at){
+  
+out <- rep("", length(x))  
+
+for(a in at){
+  dist <- abs(x-a)
+  i <- which(dist == min(dist))
+  out[i] <- a
+  } 
+out
+}
+
+lma_totals %>%
+  filter(time > 0.2) %>%
+  mutate(
+      my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))     
+      ) %>%
+  ggplot(aes(diameter_stem_av*100, density*10000, col=run, label=my_label)) + 
+  geom_line() + 
+  geom_text_repel(aes(label=my_label), nudge_x = 3) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 14) +
+  ggtitle("Self-thinning lines: LMA vs LL trade-off")
+
+lma_totals %>%
+  filter(height > 0.05) %>%
+  mutate(
+    diameter = diameter_stem_av*100, 
+    density=density*10000
+    ) %>% 
+  ggplot(aes(diameter_stem_av, density, group=species)) +
+  geom_line() + 
+  geom_line(data = fitted_trouve, colour = "dark grey") +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 14)
+
+lma_expand <-
+  lma_runs %>% map_dfr(~.x$patch_expand$species, .id = "run")
+
+lma_expand %>% filter(run == 1) %>% plot_size_distribution()
+
+lma_expand %>% drop_na() %>% filter(time > 0.2) %>% ggplot(aes(time, mortality, col = run)) + geom_line() + theme_classic()
+
+## mortality, number of individuals that die(?) need to get yearly mortality rates?
+```
+
+
+## Trait comparison 2: 
+
+**Nitrogen per unit leaf area**
+
+- High N (faster assimilation & respiration rates) vs Low N (slower assimilation and respiration)
+- run 1: 0.00187, run 2: 0.003, run 3: 0.005 [kg/m^2]
+
+The below plots demonstrate that different values of nitrogen per unit leaf area leaf to different stand outcomes. Nitrogen is a key component in photosynthesis, and determines the amount of carbon assimilation a plant can complete. However with higher rates of photosynthesis, we typically see higher respiration and decomposition rates. Faster growing species typically have higher leaf N compared with slower growers.
+
+Trait Values:
+N_AREA = 0.00187, 0.003, 0.005 kg/m^2
+WD = 700 kg/m^3
+LMA = 0.07 kg/m^2
+HMAT = 15m
+```{r}
+
+narea_runs <- c(0.00187, 0.005, 0.01) %>% map(~grow_tidy_expand_totals(narea = .x), .id="run")
+
+narea_total <- narea_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = '0.00187', '2' = '0.005', '3' = '0.01'))
+
+narea_expand <- narea_runs %>% map_dfr(~.x$patch_expand$species, .id = "run")
+
+narea_total %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, area_leaf, col=run)) + 
+  geom_line() +
+  theme_classic() +
+  ggtitle("Leaf Area over time")
+
+narea_total %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, mass_total, col=run)) +
+  geom_line() +
+  theme_classic() +
+  ggtitle("Total Mass over Time")
+
+narea_lines = narea_total %>%
+  filter(time > 0.2) %>%
+  mutate(
+      my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))     
+      ) %>%
+  ggplot(aes(diameter_stem/density, density, col=run)) + 
+  geom_line() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: N_area trade-off")
+
+narea_expand %>% filter(run == 1) %>% plot_size_distribution()
+```
+
+## Trait comparison 3: 
+
+**HMAT** - height at maturity (point at which the plant switches to primarily reproductive allocation focus)
+
+- Greater HMAT and longer growing period vs lower HMAT with shorter growing period. It is important to consider what height is sustainable, i.e. where the energetic costs associated with one's height are not greater than the plant's "income" through photosynthesis. Taller trees require greater resources to maintain their size, which may lead to a bigger impact of stress on individuals being shaded by their neighbours.
+- run 1: 5m, run 2: 10m, run 3: 25m and run 4: 40m 
+- needs some edits here - selecting the right HMAT to take stands to
+
+Trait Values:
+NAREA = 0.00187 kg/m^2
+WD = 700 kg/m^3
+LMA = 0.07 kg/m^2
+HMAT = ???
+```{r}
+
+hmat_runs <- c(5, 10, 25, 40) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "hmat")))
+hmat_total <-
+  hmat_runs %>% map_dfr(~.x$patch_total, .id = "run") %>%
+  mutate(run = recode(run, '1' = '5', '2' = '10', '3' = '25', '4' = '40'))
+
+hmat_total %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, area_leaf, col=run)) + 
+  geom_line() +
+  theme_classic() +
+  ggtitle("Leaf Area over time")
+
+hmat_total %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, mass_total, col=run)) + 
+  geom_line() +
+  theme_classic() +
+  ggtitle("Total Mass over Time")
+
+hmat_total %>%
+  filter(time > 0.2) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
+  ggplot(aes(area_stem_av, density, col=run)) + 
+  geom_line() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: HMAT trade-off")
+
+```
+
+
+## Trait comparison 4: 
+
+**Wood Density**:
+
+- Wood density values
+- 400, 600, 800 [kg/m^3]
+- Greater wood density provides more structural integrity, longevity and ability to survive stress, with reduced growth-independent mortality, but this demands a higher cost.
+
+Trait Values:
+N_AREA = 0.00187 kg/m^2
+WD = 300, 600, 800 kg/m^3
+LMA = 0.07 kg/m^2
+HMAT = 15m
+```{r}
+
+wd_runs <- c(300, 600, 800) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "rho")))
+
+wd_total <-
+  wd_runs %>% map_dfr(~.x$patch_total, .id = "run")
+
+wd_total %>%
+filter(time > 0.2) %>%
+  ggplot(aes(time, area_leaf, col=run)) + 
+  geom_line() +
+  theme_classic() +
+  ggtitle("Leaf Area over time")
+
+wd_total %>%
+filter(time > 0.2) %>%
+  ggplot(aes(time, mass_total, col=run)) + 
+  geom_line() +
+  theme_classic() +
+  ggtitle("Total Mass over Time")
+
+wd_lines = wd_total %>%
+filter(time > 0.2) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
+  ggplot(aes(diameter_stem/density, density, col=run)) + 
+  geom_line() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: WD trade-off")
+
+wd_total %>%
+filter(time > 20, time < 30) %>%
+  ggplot(aes(area_stem_av, density, col=run)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: WD trade-off: year 20 to 30")
+
+```
+
+## Trait comparison 4: 
+
+**Seed Mass**:
+0.000038 kg default value
+
+Trait Values:
+N_AREA = 0.00187 kg/m^2
+WD = 700 kg/m^3
+LMA = 0.07 kg/m^2
+HMAT = 15m
+SEED_MASS = [0.000038]
+
+```{r}
+seed_mass_runs <- c(0.00001, 0.001, 0.01) %>% set_names(.) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "omega")))
+
+seed_mass_totals <-
+  seed_mass_runs %>% map_dfr(~.x$patch_total, .id = "run") %>% 
+  mutate(run = recode(run, '1' = '0.00001', '2' = '0.001', '3' = '0.01'))
+
+seed_mass_totals %>%
+filter(time > 0.2) %>%
+  ggplot(aes(time, area_leaf, col=run)) + 
+  geom_line() +
+  theme_classic() +
+  ggtitle("Leaf Area over time")
+
+seed_mass_totals %>%
+filter(time > 0.2) %>%
+  ggplot(aes(time, mass_total, col=run)) + 
+  geom_line() +
+  theme_classic() +
+  ggtitle("Total Mass over Time")
+
+seed_mass_lines = seed_mass_totals %>%
+filter(time > 0.2) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
+  ggplot(aes(diameter_stem/density, density, col=run)) + 
+  geom_line() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: Seed Mass trade-off")
+```
+
+
+```{r}
+lma_lines + narea_lines + wd_lines + seed_mass_lines
+```
+
+
+```{r}
+lma_lines = lma_values %>%
+  filter(time > 0.2) %>%
+  mutate(
+      my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))     
+      ) %>%
+  ggplot(aes(diameter_stem_av, density, col=run, label=my_label)) + 
+  geom_line() + 
+  geom_text_repel(aes(label=my_label), nudge_x = 3) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: LMA vs LL trade-off")
+
+
+narea_lines = narea_total %>%
+  filter(time > 0.2) %>%
+  mutate(
+      my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))     
+      ) %>%
+  ggplot(aes(diameter_stem_av, density, col=run)) + 
+  geom_line() +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: N_area trade-off")
+
+
+wd_lines = wd_total %>%
+filter(time > 0.2) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1.25, 2.5, 5, 10, 20, 40, 80))   
+    ) %>%
+  ggplot(aes(diameter_stem_av, density, col=run)) + 
+  geom_line() +
+  geom_abline(slope = -1.52, intercept = log(12.07), colour = "dark grey") +
+  geom_abline(slope = -1.42, intercept = log(11.29), colour = "dark grey") +
+  geom_abline(slope = -1.56, intercept = log(12.21), colour = "dark grey") +
+  geom_abline(slope = -1.57, intercept = log(12.26), colour = "dark grey") +
+  geom_text_repel(aes(label=my_label), nudge_x = 2) +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  ggtitle("Self-thinning lines: WD trade-off")
+
+ggplot(aes(diameter_stem_av, density, col = run)) +
+  geom_line(data = wd_total) +
+  geom_line(data = lma_values) +
+  geom_line(data = narea_total)
+
+```
+
+## To do:
+
+- 1. Set final trait-values (e.g. HMAT needs further consideration)
+- 2. Combine multiple trade-offs in stands
+- 3. Vary environmental params
+- 4. Quantify slope, intercept, mortality rate, thinning period
+
+
+```{r}
+lma_values %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(diameter_stem_av, log10(density), col=run)) + 
+  geom_line() +
+  theme_classic()
+
+lma_values %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, log10(density), col=run)) + 
+  geom_line() +
+  theme_classic()
+
+lma_values %>%
+  filter(time > 0.2) %>%
+  ggplot(aes(time, diameter_stem_av, col=run)) + 
+  geom_line() +
+  theme_classic()
+
+````
+

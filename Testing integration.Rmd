@@ -1,0 +1,102 @@
+---
+title: "Testing integration via integrate_over_size_distribution"
+output: github_document
+date: '2022-07-26'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(purrr)
+```
+
+Let's assume a known density wrt height, to test against. Let 
+
+$$n(H)= a H^{-b}$$
+
+Then we can directly integrate to compare results against 'plant' integration
+
+$$N= \int_{1}^{20} n(H) \, dH = a \bigg[\frac{H^{1-b}}{1-b}\bigg]^{20}_{1}$$
+$$H_{T}= \int_{1}^{20}N(H) \, H \, dH = a \bigg[\frac{H^{2-b}}{2-b}\bigg]^{20}_{1}$$
+
+Now generate data to tests
+
+
+```{r}
+## set density = a*H^-b, height sequence 1:20, b = 3/2, a = starting density per unit area
+## create stand of individuals with heights obtained and resulting density over time
+## so we have constant height growth increase, therefore assume time steps are non-linear
+
+a = 10
+b = 3/2
+plant_stand <- 
+  tibble(
+    time = 1,
+    step=2,
+    patch_density = 1, 
+    species = 1, 
+    height = seq(20,1, by = -0.05)
+    ) %>% 
+  mutate(
+    node = seq_len(n()) %>% rev(),
+    density = a*height^(-b)
+  )
+```
+
+Now compare solutions
+```{r}
+# integrate with plant inbuilt solver
+stand_integrate <- integrate_over_size_distribution(plant_stand)
+stand_integrate2 <- integrate_over_size_distribution2(plant_stand)
+
+# Analyitcal soluntions
+# N: a/(1-b) H ^ (1-b)
+# H: a/(2-b) H ^ (2-b)
+
+N_analytical <- a/(1-b) *20 ^ (1-b) - a/(1-b) *1 ^ (1-b)
+N_trapezium <- -plant:::trapezium(plant_stand$height, plant_stand$density)
+N_plant<- stand_integrate$individuals
+
+c(N_analytical, N_trapezium, N_plant)
+
+H_analytical <- a/(2-b) *20 ^ (2-b) - a/(2-b) *1 ^ (2-b)
+H_trapezium <- -plant:::trapezium(plant_stand$height, plant_stand$height*plant_stand$density)
+H_plant <- stand_integrate$height
+
+c(H_analytical, H_trapezium, H_plant)
+
+Hav_analytical <- H_analytical/N_analytical
+Hav_trapezium <- H_trapezium/N_trapezium
+Hav_plant <- H_plant/N_plant
+
+c(Hav_analytical, Hav_trapezium, Hav_plant)
+```
+
+So it turns out `integrate_over_size_distreibution` is getting the number of individuals wrong which is flowing onto average height
+
+
+Here's a fix:
+```{r}
+integrate_over_size_distribution2 <- function (tidy_species_data) 
+{
+    tidy_species_data %>% dplyr::select(-.data$node) %>% stats::na.omit() %>% 
+        dplyr::filter(.data$step > 1) %>% dplyr::group_by(.data$step, 
+        .data$time, .data$patch_density, .data$species) %>% 
+    dplyr::summarise(
+      density_integrated = -plant:::trapezium(.data$height, .data$density), 
+      min_height = min(.data$height),
+      dplyr::across(where(is.double) & !c(density, density_integrated, min_height) , ~-plant:::trapezium(height, density * .x)), 
+        .groups = "drop") %>% 
+    dplyr::rename(density = density_integrated)
+}
+
+integrate_over_size_distribution2(plant_stand) %>% 
+  mutate(Hav = height/density)
+```
+

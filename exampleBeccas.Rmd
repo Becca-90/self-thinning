@@ -124,7 +124,13 @@ results_tidy_expand <- results_decay_tidy %>% FF16_expand_state()
 
 #integrate to calculate species totals
 data_species_tot <- 
-  results_tidy_expand$species %>% integrate_over_size_distribution()
+  results_tidy_expand$species %>% integrate_over_size_distribution() %>%
+  mutate(
+      # create average sizes
+      diameter_stem = (2 * sqrt (area_stem / pi)),
+      across(c(area_stem, area_leaf, height, mass_above_ground, diameter_stem), ~.x/individuals,
+      .names = "{.col}_av"),
+    )
 
 ```
 
@@ -170,7 +176,7 @@ grow_tidy_expand_totals <- function(oderel=1e-4, odeabs=1e-4, scheps=0.005, rec_
 allsteps <- grow_tidy_expand_totals(1e-4, 1e-4, 0.005, 0)
 
 #higher resolution
-allsteps <- grow_tidy_expand_totals(1e-5, 1e-5, 0.0001, 0)
+allsteps <- grow_tidy_expand_totals(1e-5, 1e-5, 0.0001, 5)
 
 allsteps %>%
   ggplot(aes(time, area_leaf)) +
