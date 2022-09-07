@@ -1,12 +1,7 @@
-grow_tidy_expand_totals <- function(schedule_eps=0.0005, B_lf1 = 0.8273474, B_lf2 = 0.5, ...) {
+grow_tidy_expand_totals <- function(...) {
   
-  control = scm_base_control()
-  
-  control$schedule_eps <- schedule_eps
-  
-  p <- base_params(...)
-  patch <- run_mypatch(p0 = p, ctrl = control, B_lf1 = B_lf1, B_lf2 = B_lf2, d_I = d_I)
-  patch_tidy <- tidy_patch(patch)
+  patch <- run_mypatch(...)
+  patch_tidy <- tidy_patch(patch$out)
   patch_expand <- FF16_expand_state(patch_tidy)
   
   patch_total <-
@@ -18,5 +13,5 @@ grow_tidy_expand_totals <- function(schedule_eps=0.0005, B_lf1 = 0.8273474, B_lf
              .names = "{.col}_av")
     )
   
-  list(p = p, patch = patch, patch_expand = patch_expand, patch_total = patch_total)
+  list(p = patch$p, patch = patch, patch_expand = patch_expand, patch_total = patch_total)
 }

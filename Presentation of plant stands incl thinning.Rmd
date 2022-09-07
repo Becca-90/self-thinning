@@ -24,10 +24,10 @@ library(patchwork)
 library(purrr)
 library(ggrepel)
 source("R/grow_tidy_expand_totals.R")
-source("R/base_params function.R")
 source("R/run_mypatch.R")
 source("R/grow_plot function.R")
 source("R/thinning_plot.R")
+source("../self-thinning/R/plot_stand.R")
 source("../self-thinning/R/find_closest_timestamps.R")
 ```
 

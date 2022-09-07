@@ -5,7 +5,7 @@ plot_stand <- function(data, xvar, yvar, title="") {
   
   data %>% 
     filter(time > 0.1) %>%
-    ggplot(aes(x, y, col = run, label = run)) + 
+    ggplot(aes(x, y, col = trait_value, label = trait_value)) + 
     geom_line() + 
     xlab(xvar) +
     ylab(yvar) +
