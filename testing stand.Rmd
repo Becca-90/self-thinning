@@ -133,13 +133,15 @@ birth_rate_runs <- c(0.1, 1, 10, 100, 1000) %>% set_names(.) %>% map(~grow_tidy_
 birth_rate_total <-
   birth_rate_runs %>% map_dfr(~.x$patch_total, .id = "trait_value")
 
-thinning_plot(birth_rate_total, xvar = "diameter_stem_av", xlims = c(5e-4, 2e-01), ylims = c(1e-2, 2e3), ylab = "Stem Diameter (m)", title = "Self-thinning under varied birth rates")
+birth_rates = thinning_plot(birth_rate_total, xvar = "diameter_stem_av", xlims = c(5e-4, 2e-01), xlab = "mean stem diameter (m)", ylims = c(1e-2, 2e3))
 
-plot_stand(birth_rate_total, xvar = "time", yvar = "area_leaf", "LA over time")
+#plot_stand(birth_rate_total, xvar = "time", yvar = "area_leaf", "LA over time")
 
-plot_stand(birth_rate_total, xvar = "density", yvar = "area_leaf", "Density against LA")
+#plot_stand(birth_rate_total, xvar = "density", yvar = "area_leaf", "Density against LA")
 
-birth_rate_runs[[1]]$patch_expand$species %>% plot_size_distribution()
+#birth_rate_runs[[1]]$patch_expand$species %>% plot_size_distribution()
+
+ggsave(birth_rates, filename = "../self-thinning/birth_rates_stl.jpeg", width = 8, height = 5)
 ```
 
 ## B_lf1: Potential CO2 photosynthesis at average leaf nitrogen, ν0, mol per day per m^2 - default = 0.8273474, max feasible value of 2

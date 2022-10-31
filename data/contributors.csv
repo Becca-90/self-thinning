@@ -1,0 +1,710 @@
+dataset_id,name,institution,role
+Ahrens_2019,Collin W. Ahrens,"Hawkesbury Institute for the Environment, Western Sydney University","collector, contact"
+Ahrens_2019,Paul D. Rymer,"Hawkesbury Institute for the Environment, Western Sydney University",lab_leader
+Ahrens_2019,Richard Mazanec,"Biodiversity and Conservation Science, Western Australian Department of Biodiversity, Conservation and Attractions, Kensington, WA, Australia",lab_leader
+ANBG_2019,Lydia Guja,Australian National Botanic Gardens,lab_leader
+ANBG_2019,Brook Clinton,"National Collections and Marine Infrastructure, CSIRO",collector
+ANBG_2019,Tom North,"National Seed Bank, Biodiversity Science Section, Australian National Botanic Gardens",collector
+ANBG_2019,Anne Fuchs,"Botanical Information, Biodiversity Science Section, Australian National Botanic Gardens",collector
+Angevin_2011,Tara Angevin,La Trobe University,"collector, contact"
+Angevin_2011,John Morgan,La Trobe University,lab_leader
+Angevin_2011,Rachael Gallagher,Macquarie University Sydney,contributor
+Apgaua_2015,Deborah Apgaua,James Cook University,"contact, contributor, collector"
+Apgaua_2015,Yue Phin David Jeremiah-Seok Tng,James Cook University,collector
+Apgaua_2015,Susan Laurance,James Cook University,"collector, lab_leader"
+Apgaua_2017,Deborah Apgaua,James Cook University,"contact, contributor, collector"
+Apgaua_2017,Yue Phin David Jeremiah-Seok Tng,James Cook University,collector
+Apgaua_2017,Susan Laurance,James Cook University,collector
+Atkinson_2020,Joe Atkinson,University of New South Wales,"collector, contact"
+Atkinson_2020_2,Joe Atkinson,University of New South Wales,"collector, contact"
+Baker_2019,Andrew Baker,Southern Cross University,"collector, contact, contributor, lab_leader"
+Barlow_1981,Rachael Gallagher,Macquarie University Sydney,"collector, contributor"
+Bean_1997,Anthony Bean,Queensland Herbarium,"collector, contact"
+Bean_1997,Rachael Gallagher,Macquarie University Sydney,contributor
+Blackman_2010,Chris Blackman,Western Sydney University,"collector, contact"
+Blackman_2010,Tim Brodribb,University of Tasmania,lab_leader
+Blackman_2010,Gregory Jordan,University of Tasmania,lab_leader
+Bloomfield_2018,Keith Bloomfield,Australian National University,collector
+Bloomfield_2018,Owen Atkin,Australian National University,"collector, lab_leader,contact"
+Bragg_2002,Jason Bragg,"RBGDT, Sydney",collector
+Bragg_2002,Mark Westoby,Macquarie University Sydney,lab_leader
+Bragg_2002,Ian Wright,Macquarie University Sydney,contributor
+BRAIN_2007,Rachael Gallagher,Macquarie University Sydney,contributor
+Briggs_2010,Amber Briggs,unknown,collector
+Briggs_2010,John Morgan,La Trobe University,lab_leader
+Briggs_2010,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Brock_1993,John Brock,unknown,collector
+Brock_1993,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Buckton_2019,Genevieve Buckton,James Cook University,collector
+Buckton_2019,Lucas Cernusak,James Cook University,"lab_leader, contact"
+Burrows_2001,Geoff Burrows,Charles Sturt University,"collector, contact"
+Burrows_2001,Ian Wright,Macquarie University Sydney,contributor
+Caldwell_2016,Elizabeth Caldwell,"School of Biological Sciences, Monash University",collector
+Caldwell_2016,Jennifer Read,"School of Biological Sciences, Monash University","contact, collector, lab_leader"
+Caldwell_2016,Gordon Sanson,"School of Biological Sciences, Monash University",collector
+Catford_2014,Jane A. Catford,"King's College, London","collector, contact"
+Cernusak_2006,Lucas Cernusak,James Cook University,"collector, contact"
+Cernusak_2011,Lucas Cernusak,James Cook University,"collector, contact"
+Chandler_2002,Gregory Chandler,unknown,"collector, contact"
+Chandler_2002,Rachael Gallagher,Macquarie University Sydney,contributor
+Cheal_2017,Annette Muir,"Department of Environment, Land, Water and Planning, Victoria","collector, contact"
+Cheal_2017,Matthew White,"Department of Environment, Land, Water and Planning, Victoria",collector
+Cheal_2017,David Cheal,"Department of Environment, Land, Water and Planning, Victoria, Australia; Federation University",collector
+Cheal_2017,Michele Kohout,"Department of Environment, Land, Water and Planning, Victoria",collector
+Cheesman_2020,Alex Cheesman,James Cook University,"collector, contact"
+Cheesman_2020,Lucas Cernusak,James Cook University,collector
+Chen_2017,Si-Chong Chen,University of New South Wales,"collector, contact, contributor"
+Chen_2017,Angela Moles,University of New South Wales,lab_leader
+Chinnock_2007,Robert Chinnock,State Herbarium of South Australia,"collector, contact"
+Chinnock_2007,Rachael Gallagher,Macquarie University Sydney,contributor
+Choat_2006,Brendan Choat,"University of Western Sydney, Hawkesbury Institute for the Environment","collector, contact"
+Choat_2012,Brendan Choat,"University of Western Sydney, Hawkesbury Institute for the Environment","collector, contact"
+Clarke_2015,Michael Lawes,Charles Darwin University,"collector, contact, lab_leader"
+Clarke_2015,Peter Clarke,deceased,collector
+Cooper_2004,Wendy Cooper,consultant,"collector, contact"
+Cooper_2004,William Cooper,consultant,collector
+Cooper_2004,Rachael Gallagher,Macquarie University Sydney,contributor
+Cooper_2013,Daniel Metcalfe,CSIRO,"contact, contributor"
+Cooper_2013,Wendy Cooper,consultant,collector
+Cooper_2013,William Cooper,consultant,collector
+CPBR_2002,Rachael Gallagher,Macquarie University Sydney,contributor
+Craven_1987,Lyn Craven,Australian National Herbarium,collector
+Craven_1987,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Craven_2010,Lyn Craven,Australian National Herbarium,collector
+Craven_2010,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Crisp_2017,Michael Crisp,The Australian National University,"collector, contact"
+Cross_2009,Erika Cross,Charles Sturt University,"collector, contact"
+Cross_2009,John Morgan,La Trobe University,lab_leader
+Cross_2009,Rachael Gallagher,Macquarie University Sydney,contributor
+Crous_2013,Kristine Crous,"Hawkesbury Institute for the Environment, Western Sydney University","collector, contact"
+Crous_2019,Kristine Crous,"Hawkesbury Institute for the Environment, Western Sydney University","collector, contact"
+Cunningham_1999,Saul Cunningham,"CSIRO, contact",collector
+Cunningham_1999,Mark Westoby,Macquarie University Sydney,lab_leader
+Cunningham_1999,Ian Wright,Macquarie University Sydney,contributor
+Curran_2009,Timothy Curran,Lincoln University,"collector, contact"
+Curran_2009,Nigel Warwick,University of New England,lab_leader
+Curran_2009,Peter Clarke,deceased,lab_leader
+Curtis_2012,Andrea Leigh,University of Technology Sydney,"lab_leader, contact"
+Curtis_2012,Ellen Curtis,University of Technology Sydney,collector
+Denton_2007,Matthew Denton,"School of Agriculture, Food and Wine, University of Adelaide","collector, contact"
+Denton_2007,Gregory Cawthray,University of Western Australia,collector
+Denton_2007,Hans Lambers,University of Western Australia,lab_leader
+Denton_2007,Erik Veneklaas,University of Western Australia,lab_leader
+Denton_2007,Rachael Gallagher,Macquarie University Sydney,contributor
+Detombeur_2021,Felix de Tombeur,"TERRA Teaching and Research Centre, Gembloux Agro-Bio Tech, University of Liege, Gembloux, Belgium","contact, collector"
+Detombeur_2021,Etienne Laliberte,Universite de Montreal,lab_leader
+Detombeur_2021,Hans Lambers,University of Western Australia,lab leader
+Detombeur_2021,Graham Zemunik,University of Western Australia,collector
+Dong_2017,Ning Dong,Macquarie University,"collector, contact"
+Dong_2017,Ian Wright,Macquarie University,assistant
+Dong_2017,Iain Colin Prentice,Imperial College London,lab_leader
+Du_2018,Pengzhen Du,Lanzhou University,collector
+Du_2018,Claire Farrell,University of Melbourne,"lab_leader, contact"
+Du_2018,Stefan Arndt,University of Melbourne,lab_leader
+Du_2019,Pengzhen Du,Lanzhou University,collector
+Du_2019,Claire Farrell,University of Melbourne,"lab_leader, contact"
+Du_2019,Stefan Arndt,University of Melbourne,lab_leader
+Duan_2015,Honglang Duan,"Hawkesbury Institute for the Environment, Western Sydney University",collector
+Duan_2015,David Tissue,"Hawkesbury Institute for the Environment, Western Sydney University","collector, lab_leader, contact"
+Duan_2015,Renee Smith,"Hawkesbury Institute for the Environment, Western Sydney University",collector
+Duncan_1998,David Duncan,Melbourne University,"collector, contact"
+Duncan_1998,Mark Westoby,Macquarie University Sydney,lab_leader
+Duncan_1998,Ian Wright,Macquarie University Sydney,contributor
+Dwyer_2017,John M. Dwyer,University of Queensland,lab_leader
+Dwyer_2017,Daniel C. Laughlin,"University of Waikato, New Zealand",collector
+Dwyer_2018,John M. Dwyer,University of Queensland,"contact, collector, lab_leader"
+Dwyer_2018,Riah Mason,University of Queensland,collector
+Eamus_1998,Derek Eamus,University of Technology Sydney,"collector, contact"
+Eamus_1998,Ian Wright,Macquarie University Sydney,contributor
+Eamus_1999,Derek Eamus,University of Technology Sydney,"collector, contact"
+Eamus_1999,Ian Wright,Macquarie University Sydney,contributor
+Edwards_2000,Jennifer Read,"School of Biological Sciences, Monash University","lab_leader, contact"
+Edwards_2000,Gordon Sanson,"School of Biological Sciences, Monash University",lab_leader
+Edwards_2000,Cheryl Edwards,"School of Biological Sciences, Monash University",collector
+eFLOWER_2021,Herve Sauquet,National Herbarium of New South Wales and Royal Botanic Gardens and Domain Trust,"collector, contact"
+eFLOWER_2021,Juerg Schoenenberger,"Department of Botany and Biodiversity Research, University of Vienna",collector
+eFLOWER_2021,Maria von Balthazar,"Department of Botany and Biodiversity Research, University of Vienna",collector
+eFLOWER_2021,Andrea Lopez Martinez,Universidad Nacional Autonoma de Mexico,collector
+eFLOWER_2021,Susana Magallon,Universidad Nacional Autonoma de Mexico,collector
+EsperonRodriguez_2019,Manuel Esperon-Rodriguez,"Hawkesbury Institute for the Environment, Western Sydney University, Locked Bag 1797, Penrith NSW 2751 Australia","contact, collector"
+EsperonRodriguez_2019,Sally A. Power,"Hawkesbury Institute for the Environment, Western Sydney University, Locked Bag 1797, Penrith NSW 2751 Australia",lab_leader
+EsperonRodriguez_2019,Mark G. Tjoelker,"Hawkesbury Institute for the Environment, Western Sydney University, Locked Bag 1797, Penrith NSW 2751 Australia",lab_leader
+EsperonRodriguez_2019,Paul D. Rymer,"Hawkesbury Institute for the Environment, Western Sydney University, Locked Bag 1797, Penrith NSW 2751 Australia",lab_leader
+EsperonRodriguez_2020,Manuel Esperon-Rodriguez,"Hawkesbury Institute for the Environment, Western Sydney University, Locked Bag 1797, Penrith NSW 2751 Australia","contact, collector"
+Everingham_2020,Susan Everingham,University of New South Wales,"contact, collector"
+Everingham_2020,Angela Moles,University of New South Wales,lab_leader
+Falster_2003,Daniel Falster,"University of New South Wales, Sydney","collector, contact"
+Falster_2003,Mark Westoby,Macquarie University Sydney,lab_leader
+Falster_2005_1,Daniel Falster,"University of New South Wales, Sydney","collector, contact"
+Falster_2005_1,Mark Westoby,Macquarie University Sydney,lab_leader
+Falster_2005_2,Daniel Falster,"University of New South Wales, Sydney","collector, contact"
+Falster_2005_2,Mark Westoby,Macquarie University Sydney,lab_leader
+Farrell_2012,Claire Farrell,University of Melbourne,"collector, contact"
+Farrell_2012,Christopher Szota,University of Melbourne,collector
+Farrell_2013,Claire Farrell,University of Melbourne,"collector, contact"
+Farrell_2013,Christopher Szota,University of Melbourne,collector
+Farrell_2013,Stefan Arndt,University of Melbourne,lab_leader
+Farrell_2017,Claire Farrell,University of Melbourne,"collector, contact"
+Farrell_2017,Christopher Szota,University of Melbourne,collector
+Farrell_2017,Stefan Arndt,University of Melbourne,lab_leader
+Firn_2019,Jennifer Firn,Queensland University of Technology,contact
+Fonseca_2000,Carlos Fonseca,Universidade Federal do Rio Grande do Norte,"collector, contact"
+Fonseca_2000,Mark Westoby,Macquarie University Sydney,lab_leader
+Fonseca_2000,Ian Wright,Macquarie University Sydney,contributor
+Fonseca_2000,Jacob McC. Overton,"Landcare Research, New Zealand",assistant
+Fonseca_2000,Bronwyn Collins,unknown,assistant
+Forster_1992,Paul Irwin Forster,Queensland Herbarium,collector
+Forster_1992,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Forster_1995,Paul Irwin Forster,Queensland Herbarium,collector
+Forster_1995,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+French_2017,Ben French,University of Tasmania,collector
+French_2017,Lynda Prior,University of Tasmania,"contributor, contact"
+French_2017,David Bowman,University of Tasmania,lab_leader
+French_2017,Tony French,University of Tasmania,assistant
+French_2017,Kathryn Willis,University of Tasmania,assistant
+French_2017,Chris Guinane,University of Tasmania,assistant
+French_2017,Alessandro Conti,University of Tasmania,assistant
+French_2017,Chris Fahey,University of Tasmania,assistant
+French_2017,Aine Nicholson,University of Tasmania,assistant
+Funk_2016,Jennifer Funk,"Schmid College of Science and Technology, Chapman University","collector, lab_leader"
+Funk_2016,Rachel Standish,"School of Veterinary and Life Sciences, Murdoch University","collector, lab_leader, contact"
+Gallagher_2011_1,Jan Suda,Academy of Science Czech Republic,collector
+Gallagher_2011_1,Michelle Leishman,Macquarie University Sydney,lab_leader
+Gallagher_2011_1,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Gallagher_2011_3,Ian Davidson,unknown,collector
+Gallagher_2011_3,Michelle Leishman,Macquarie University Sydney,"lab_leader, contact"
+Gallagher_2011_3,Rachael Gallagher,Macquarie University Sydney,contributor
+Gallagher_2012,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Gallagher_2012,Michelle Leishman,Macquarie University Sydney,lab_leader
+Gallagher_2015,Rachael Gallagher,Macquarie University Sydney,"collector, contact"
+Gallagher_2015,Robert Lanfear,Australian National University,collector
+Gallagher_2018,Rachael Gallagher,"Department of Biological Sciences, Macquarie University","collector, contributor, contact"
+Gallagher_2018,Bree-Anne Laugier-Kitchener,"Department of Biological Sciences, Macquarie University",collector
+Gallagher_2018,Hannah MacPherson,"National Herbarium of NSW, Royal Botanic Gardens and Domain Trust",collector
+Gallagher_2018,Maurizio Rossetto,"National Herbarium of NSW, Royal Botanic Gardens and Domain Trust",collector
+Gallagher_2018,Marlien van der Merwe,"National Herbarium of NSW, Royal Botanic Gardens and Domain Trust",collector
+Gallagher_2018,Ian Wright,"Department of Biological Sciences, Macquarie University",collector
+Gallagher_2018,Matthew Alfonzetti,"Department of Biological Sciences, Macquarie University",collector
+Gallagher_2018,Aaron Phillips,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Claire Laws,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Dana Lanceman,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Daniel Montoya Londono,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Elissa McFarlane,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,John Foster,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Karen Marais,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Loren Pollitt,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Luka Kovac,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Martin Lambert,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Sophia Amini,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Tara Boreham,"Department of Biological Sciences, Macquarie University",assistant
+Gallagher_2018,Thomas Pyne,"Department of Biological Sciences, Macquarie University",assistant
+Gardiner_2019,John M. Dwyer,University of Queensland,"contact, lab_leader"
+Gardiner_2019,Ronald Gardiner,University of Queensland,collector
+Gardiner_2019,Luke Shoo,University of Queensland,assistant
+Geange_2017,Sonya Geange,Australian National University,"collector, contact"
+Geange_2017,Adrienne Nicotra,Australian National University,lab_leader
+Geange_2020,Sonya Geange,Australian National University,"collector, contact"
+Geange_2020,Adrienne Nicotra,Australian National University,lab_leader
+Ghannoum_2010,Oula Ghannoum,"Hawkesbury Institute for the Environment, Western Sydney University",collector
+Ghannoum_2010,David Tissue,"Hawkesbury Institute for the Environment, Western Sydney University","collector, lab_leader, contact"
+Ghannoum_2010,Renee Smith,"Hawkesbury Institute for the Environment, Western Sydney University",collector
+Goble_1981,Ethel Goble-Garratt,Unknown,collector
+Goble_1981,Ian Wright,Macquarie University Sydney,"contributor, contact"
+Gosper_2004,Carl Gosper,"Department of Biodiversity, Conservation and Attractions, Western Australia","contact, collector"
+Gosper_2012,Carl Gosper,"Department of Biodiversity, Conservation and Attractions, Western Australia","contact, collector"
+Gosper_2012,Suzanne Prober,CSIRO Land and Water,collector
+Gosper_2012,Colin Yates,"Department of Biodiversity, Conservation and Attractions, Western Australia",collector
+Gosper_2018,Carl Gosper,"Department of Biodiversity, Conservation and Attractions, Western Australia","contact, collector"
+Gosper_2018,Suzanne Prober,CSIRO Land and Water,collector
+Gosper_2018,Colin Yates,"Department of Biodiversity, Conservation and Attractions, Western Australia",collector
+GrassBase_2014,Derek Clayton,Kew Botanic Gardens,"collector, contact"
+GrassBase_2014,Rachael Gallagher,Macquarie University Sydney,contributor
+GrassBase_2014,Maria Vorontsova,Kew Botanic Gardens,"lab_leader, collector"
+Gray_2019,Emma Gray,Macquarie University Sydney,collector
+Gray_2019,Ian Wright,Macquarie University Sydney,"lab_leader, contributor, contact"
+Groom_1997,Philip K Groom,Curtin University,collector
+Groom_1997,Byron Lamont,Curtin University,"collector, contact"
+Groom_2010,Philip K Groom,Curtin University,"contributor, collector"
+Groom_2010,Byron Lamont,Curtin University,"collector, contact, lab_leader"
+Grootemaat_2015,Saskia Grootemaat,University of New South Wales,"collector, contact"
+Grootemaat_2015,William Cornwell,Macquarie University,collector
+Grootemaat_2015,Ian Wright,Macquarie University,lab_leader
+Grootemaat_2017_1,Saskia Grootemaat,University of New South Wales,"collector, contact"
+Grootemaat_2017_1,Ian Wright,Macquarie University,lab_leader
+Grootemaat_2017_1,Veronica Shaw,Macquarie University,assistant
+Grootemaat_2017_2,Saskia Grootemaat,University of New South Wales,"collector, contact"
+Grootemaat_2017_2,Ian Wright,Macquarie University,lab_leader
+Gross_1993,Caroline Gross,University of New England,"collector, lab_leader"
+Gross_1993,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Gross_2005,Caroline Gross,University of New England,"collector, contact"
+Grubb_1996,Daniel Metcalfe,CSIRO,collector
+Grubb_1996,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Grubb_2008,Peter Grubb,Cambridge University,"collector, lab_leader, contact"
+Grubb_2008,Ian Wright,Macquarie University Sydney,contributor
+Guilherme_Pereira_2018,Caio Guilherme Pereira,"Department of Civil and Environmental Engineering, Massachusetts Institute of Technology","contact, collector"
+Guilherme_Pereira_2018,Hans Lambers,University of Western Australia,lab_leader
+Guilherme_Pereira_2019,Caio Guilherme Pereira,"Department of Civil and Environmental Engineering, Massachusetts Institute of Technology","collector, contact"
+Guilherme_Pereira_2019,Patrick Hayes,University of Western Australia,collector
+Guilherme_Pereira_2019,Hans Lambers,University of Western Australia,lab_leader
+Guilherme_Pereira_2019,Odhran S. O'Sullivan,Australian National University,collector
+Guilherme_Pereira_2019,Lasantha K. Weerasinghe,Australian National University,collector
+Guilherme_Pereira_2019,Owen Atkin,Australian National University,lab_leader
+Hall_1981,TJ Hall,CSIRO,"collector, lab_leader"
+Harrison_2009,Matthew Tom Harrison,"Tasmanian Institute of Agriculture, University of Tasmania","collector, contact"
+Harrison_2009,John Evans,The Australian National University,lab_leader
+Harrison_2009,Ian Wright,Macquarie University Sydney,contributor
+Hassiotou_2009,Foteini Hassiotou,Unknown,"collector, contact"
+Hassiotou_2009,Erik Veneklaas,University of Western Australia,lab_leader
+Hassiotou_2009,Rachael Gallagher,Macquarie University Sydney,contributor
+Hayes_2014,Patrick Hayes,University of Western Australia,"collector, contact"
+Hayes_2014,Hans Lambers,University of Western Australia,lab_leader
+Hayes_2014,Etienne Laliberte,Universite de Montreal,collector
+Hayes_2018,Patrick Hayes,University of Western Australia,"collector, contact"
+Hayes_2018,Peta Clode,University of Western Australia,collector
+Hayes_2018,Hans Lambers,University of Western Australia,lab_leader
+Henery_2001,Martin Henery,CSIRO,"collector, contact"
+Henery_2001,Mark Westoby,Macquarie University Sydney,lab_leader
+Henery_2001,Ian Wright,Macquarie University Sydney,contributor
+Hocking_1982,Peter Hocking,Murdoch University,collector
+Hocking_1986,Peter Hocking,Murdoch University,collector
+Huang_2015,Guomin Huang,"Hawkesbury Institute for the Environment, Western Sydney University",collector
+Huang_2015,David Tissue,"Hawkesbury Institute for the Environment, Western Sydney University","collector, lab_leader, contact"
+Huang_2015,Renee Smith,"Hawkesbury Institute for the Environment, Western Sydney University",collector
+Hughes_1992,Lesley Hughes,Macquarie University Sydney,collector
+Hughes_1992,Barbara Rice,Macquarie University Sydney,collector
+Hughes_1992,Mark Westoby,Macquarie University Sydney,"lab_leader, contact"
+Hughes_1992,Ian Wright,Macquarie University Sydney,contributor
+Hughes_2005,Kate Hughes,unknown,collector
+Hughes_2005,Mark Westoby,Macquarie University Sydney,lab_leader
+Hughes_2005,Ian Wright,Macquarie University Sydney,"contributor, contact"
+Hyland_2003,Rachael Gallagher,Macquarie University Sydney,contributor
+Ilic_2000,Jugo Ilic,University of Melbourne,"collector, lab_leader"
+Ilic_2000,Amy Zanne,George Washington University,"contributor, contact"
+Islam_1999_1,Muhammad Islam,unknown,collector
+Islam_1999_1,Mark Adams,University of Western Australia,"lab_leader, contact"
+Islam_1999_1,Rachael Gallagher,Macquarie University Sydney,contributor
+Islam_1999_2,Muhammad Islam,unknown,collector
+Islam_1999_2,Mark Adams,University of Western Australia,"lab_leader, contact"
+Islam_1999_2,Rachael Gallagher,Macquarie University Sydney,contributor
+Jagdish_2020,Ashika Jagdish,University of New South Wales,"contact, collector"
+Jagdish_2020,Angela Moles,University of New South Wales,lab_leader
+Jin_2019,Daniel Jin,"School of Life and Environmental Sciences, Faculty of Science, The University of Sydney","collector, contact"
+Jin_2019,Dieter Hochuli,"School of Life and Environmental Sciences, Faculty of Science, The University of Sydney",lab_leader
+Jordan_2001,Gregory Jordan,University of Tasmania,"collector, contact, lab_leader"
+Jordan_2007,Gregory Jordan,University of Tasmania,"collector, contact, lab_leader"
+Jordan_2007,Ian Wright,Macquarie University Sydney,contributor
+Jordan_2015,Gregory Jordan,University of Tasmania,"collector, contact"
+Jordan_2015,Aina Price,University of Tasmania,collector
+Jordan_2020,Gregory Jordan,University of Tasmania,"collector, contact"
+Jordan_2020,Raymond Carpenter,University of Adelaide,collector
+Jurado_1991,Enrique Jurado,Autonomous University of Nuevo Leon,"collector, contact"
+Jurado_1991,Mark Westoby,Macquarie University Sydney,lab_leader
+Jurado_1991,Ian Wright,Macquarie University Sydney,contributor
+Jurado_1992,Enrique Jurado,Autonomous University of Nuevo Leon,"collector, contact, contributor"
+Jurado_1992,Des Nelson,CSIRO Alice Springs,collector
+Kanowski_2000,John Kanowski,Australian Wildlife Conservancy,"collector, contact"
+Keighery_2004,Greg Keighery,WA Department of Parks and Wildlife,collector
+Keighery_2004,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Kew_2019_1,Udayangani Liu,Kew Botanic Gardens,contact
+Kew_2019_2,Udayangani Liu,Kew Botanic Gardens,contact
+Kew_2019_3,Udayangani Liu,Kew Botanic Gardens,contact
+Kew_2019_4,Udayangani Liu,Kew Botanic Gardens,contact
+Kew_2019_5,Udayangani Liu,Kew Botanic Gardens,contact
+Kew_2019_6,Udayangani Liu,Kew Botanic Gardens,contact
+Kirkpatrick_2020,James Kirkpatrick,University of Tasmania,"collector, contact"
+Knox_2011,Kirsten Knox,Unknown,"collector, contact"
+Knox_2011,Peter Clarke,University of New England,lab_leader
+Knox_2011,Rachael Gallagher,Macquarie University Sydney,contributor
+Kooyman_2011,Robert Kooyman,Royal Botanic Gardens Sydney; Macquarie University,"collector, contact"
+Kooyman_2011,Rachael Gallagher,Macquarie University Sydney,contributor
+Kotowska_2020,Martyna Kotowska,"Department of Plant Ecology and Ecosystems Research, University of Goettingen","collector, contact"
+Kotowska_2020,Ian Wright,Macquarie University Sydney,lab_leader
+Kotowska_2020,Mark Westoby,Macquarie University Sydney,lab_leader
+Kuo_1982,John Kuo,University of Western Australia,collector
+Laliberte_2012,Etienne Laliberte,Universite de Montreal,"collector, contact, lab_leader"
+Laliberte_2012,Hans Lambers,University of Western Australia,contributor
+Laliberte_2012,Rachael Gallagher,Macquarie University Sydney,contributor
+Lamont_2002,Byron Lamont,Curtin University,"collector, contact, lab_leader"
+Lamont_2002,Ian Wright,Macquarie University Sydney,contributor
+Lamont_2002,Philip K Groom,Curtin University,"contributor, collector"
+Lawes_2012,Michael Lawes,Charles Darwin University,"collector, contact, lab_leader"
+Lawes_2012,Rachael Gallagher,Macquarie University Sydney,contributor
+Lawson_2015,James Lawson,Macquarie University Sydney,"collector, contact"
+Lawson_2015,Michelle Leishman,Macquarie University Sydney,lab_leader
+Laxton_2005,Emma Laxton,unknown,collector
+Laxton_2005,Lesley Hughes,Macquarie University Sydney,lab_leader
+Laxton_2005,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Lee_2019,Brad Oberle,"Division of Natural Sciences, New College of Florida",collector
+Lee_2019,Amy Zanne,George Washington University,collector
+Lee_2019,Jeff R. Powell,"Hawkesbury Institute for the Environment, Western Sydney University","contact, contributor, assistant"
+Lee_2019,Jessica L. Rigg,"NSW Department of Primary Industries, Elizabeth Macarthur Agricultural Institute",assistant
+Leigh_2003,Andrea Leigh,University of Technology Sydney,"collector, contact"
+Leigh_2003,Adrienne Nicotra,Australian National University,collector
+Leigh_2006,Andrea Leigh,University of Technology Sydney,"collector, contact"
+Leigh_2006,Adrienne Nicotra,Australian National University,lab_leader
+Leigh_2006,Meredith Cosgrove,Australian National University,collector
+Leishman_1992,Michelle Leishman,Macquarie University Sydney,"collector, contact"
+Leishman_1992,Mark Westoby,Macquarie University Sydney,lab_leader
+Leishman_1993,Michelle Leishman,Macquarie University Sydney,contact
+Leishman_1993,Mark Westoby,Macquarie University Sydney,lab_leader
+Leishman_1993,Barbara Rice,Macquarie University Sydney,collector
+Leishman_1993,Jocelyn Howell,Macquarie University Sydney,collector
+Leishman_1995,Michelle Leishman,Macquarie University Sydney,"collector, contact"
+Leishman_1995,Mark Westoby,Macquarie University Sydney,lab_leader
+Leishman_1995,Barbara Rice,Macquarie University Sydney,collector
+Leishman_1995,Jocelyn Howell,Macquarie University Sydney,collector
+Leishman_2007,Michelle Leishman,Macquarie University,"lab_leader, collector, contributor"
+Leishman_2007,Tammy Haslehurst,"Department of Physical Geography, Macquarie University",assistant
+Lemmens_1994,Amy Zanne,George Washington University,"contributor, contact"
+Lewis_2015,James Lewis,"Hawkesbury Institute for the Environment, Western Sydney University",collector
+Lewis_2015,David Tissue,"Hawkesbury Institute for the Environment, Western Sydney University","lab_leader, contact, collector"
+Lewis_2015,Renee Smith,"Hawkesbury Institute for the Environment, Western Sydney University",collector
+Lewis_2015,Allison Frith,Sydney University,collector
+Lim_2017,Felix Lim,University of Melbourne,"contact, collector"
+Lim_2017,Peter Vesk,University of Melbourne,lab_leader
+Lim_2017,Laura Pollock,University of Melbourne,collector
+Lord_1997,Janice Lord,University of Otago,"collector, contact"
+Lord_1997,Mark Westoby,Macquarie University Sydney,lab_leader
+Lord_1997,Ian Wright,Macquarie University Sydney,contributor
+Lord_1997,Judy Egan,Conservation Commission of the Northern Territory,assistant
+Lunt_2012,Ian Lunt,Charles Sturt University,"collector, contact, lab_leader"
+Lunt_2012,John Morgan,La Trobe University,collector
+Lunt_2012,Rachael Gallagher,Macquarie University Sydney,contributor
+Lusk_2010,Christopher Lusk,University of Waikato,"collector, contact, lab_leader"
+Lusk_2012,Christopher Lusk,University of Waikato,"collector, contact"
+Lusk_2014,Christopher Lusk,University of Waikato,"collector, contact, lab_leader"
+MacinnisNg_2004,Catriona Macinnis-Ng,University of Auckland,"collector, contact"
+MacinnisNg_2004,Kate McClenahan,University of Technology Sydney,collector
+MacinnisNg_2004,Derek Eamus,University of Technology Sydney,lab_leader
+MacinnisNg_2016,Catriona Macinnis-Ng,University of Auckland,"collector, contact"
+MacinnisNg_2016,Derek Eamus,University of Technology Sydney,lab_leader
+Manea_2011,Anthony Manea,Macquarie University Sydney,collector
+Manea_2011,Michelle Leishman,Macquarie University Sydney,"lab_leader, contact"
+Manea_2011,Rachael Gallagher,Macquarie University Sydney,contributor
+Maslin_2012,Bruce Maslin,Macquarie University Sydney,"collector, contact"
+Maslin_2012,Brendan Lepschi,CSIRO,custodian
+Maslin_2012,Rachael Gallagher,Macquarie University Sydney,contributor
+McCarthy_2017,James McCarthy,University of Queensland,"collector, contact"
+McCarthy_2017,John M. Dwyer,University of Queensland,lab_leader
+McCarthy_2017,Karel Mokany,"CSIRO Land and Water Canberra, Australia",lab_leader
+McCarthy_2017,Mike Olsen,unaffiliated,assistant
+McCarthy_2017,Timothy Staples,University of Queensland,assistant
+McGlone_2015,Gregory Jordan,University of Tasmania,"collector, contact"
+Meers_2007,Trevor Meers,Cumberland Ecology,"collector, contact"
+Meers_2007,Sabine Kasel,University of Melbourne,lab_leader
+Metcalfe_2009,Daniel Metcalfe,CSIRO,"collector, contributor"
+Metcalfe_2020_1,Daniel Metcalfe,CSIRO,"contributor, contact"
+Metcalfe_2020_2,Daniel Metcalfe,CSIRO,"contributor, contact"
+Milberg_1997,Per Milberg,Curtin University,collector
+Milberg_1997,Byron Lamont,Curtin University,"collector, contact"
+Milberg_1998,Per Milberg,Curtin University,collector
+Milberg_1998,Byron Lamont,Curtin University,"collector, contact"
+Mokany_2008,Karel Mokany,"CSIRO, Canberra","contact, collector"
+Mokany_2008,Julian Ash,Australian National University,collaborator
+Mokany_2015,Karel Mokany,"CSIRO, Canberra","contact, collector"
+Moles_2000,Angela Moles,University of New South Wales,"collector, contact"
+Moles_2000,Mark Westoby,Macquarie University Sydney,lab_leader
+Moles_2003,Angela Moles,University of New South Wales,"contact, collector"
+Moles_2003,Mark Westoby,Macquarie University Sydney,lab_leader
+Moles_2011,Angela Moles,University of New South Wales,"contact, collector, lab_leader"
+Moore_2019,Ben D. Moore,"Hawkesbury Institute for the Environment, Western Sydney University","contact, collector, lab_leader"
+Moore_2019,Jane L. DeGabriel,NA,collector
+Moore_2019_2,Nicholas Moore,La Trobe University,"collector, contact"
+Moore_2019_2,John Morgan,La Trobe University,lab_leader
+Moore_2019_2,James Camac,La Trobe University,"collector, contributor"
+Morgan_2005,Huw Morgan,CSIRO,"collector, contact"
+Morgan_2005,Mark Westoby,Macquarie University Sydney,lab_leader
+Morgan_2005,Ian Wright,Macquarie University Sydney,contributor
+Morgan_2011_1,John Morgan,La Trobe University,"collector, contact, lab_leader"
+Morgan_2011_1,Rachael Gallagher,Macquarie University Sydney,contributor
+Morgan_2011_2,John Morgan,La Trobe University,"collector, contact, lab_leader"
+Morgan_2011_2,Rachael Gallagher,Macquarie University Sydney,contributor
+Morgan_2014,John Morgan,La Trobe University,"collector, contact, lab_leader"
+Morgan_2014,Rachael Gallagher,Macquarie University Sydney,contributor
+Muir_2014,Annette Muir,"Department of Environment, Land, Water and Planning, Victoria, Australia","collector, contact"
+Muir_2014,Peter Vesk,University of Melbourne,lab_leader
+Munroe_2019,Samantha Munroe,"Terrestrial Ecosystem Research Network, The School of Biological Sciences, The University of Adelaide, Adelaide, SA, 5005, Australia.","contact, collector"
+Munroe_2019,Greg Guerin,"Terrestrial Ecosystem Research Network, The School of Biological Sciences, The University of Adelaide, Adelaide, SA, 5005, Australia.",collector
+Munroe_2019,Ben Sparrow,"Terrestrial Ecosystem Research Network, The School of Biological Sciences, The University of Adelaide, Adelaide, SA, 5005, Australia.",collector
+NHNSW_2016,Marco Duretto,National Herbarium of NSW,curator
+NHNSW_2016,Rachael Gallagher,Macquarie University Sydney,contributor
+Nicholson_2017,Aine Nicholson,University of Tasmania,"collector, contributor"
+Nicholson_2017,Lynda Prior,University of Tasmania,"collector, contact"
+Nicholson_2017,David Bowman,University of Tasmania,lab_leader
+Nicholson_2017,George Perry,University of Auckland,assistant
+Nicholson_2017,Mary Maconochie,University of Tasmania,assistant
+Nicholson_2017,Kaely Kreger,University of Tasmania,assistant
+Nicolle_2006,Dean Nicolle,Currency Creek Arboretum Eucalypt Research,collector
+Nicolle_2006,Carl Gosper,"Department of Biodiversity, Conservation and Attractions, Western Australia","contact, collector"
+Nicolle_2006,Colin Yates,"Department of Biodiversity, Conservation and Attractions, Western Australia",collector
+Niinemets_2009,Ian Wright,Macquarie University,"collector, contact, contributor"
+Niinemets_2009,Ule Niinemets,Estonian University of Life Sciences,collector
+Niinemets_2009,Mark Westoby,Macquarie University,lab_leader
+NSWFRD_2014,Elizabeth Tasker,NSW Department of Planning Industry and Environment,"collector, contact"
+NSWFRD_2014,Belinda Kenny,NSW Rural Fire Service,collector
+NSWFRD_2014,Ross Bradstock,University of Wollongong,assistant
+NSWFRD_2014,Malcolm Gill,The Australian National University,assistant
+NSWFRD_2014,Corinna Orscheg,NSW Department of Planning Industry and Environment,assistant
+NTH_2014,Ian Cowie,Northern Territory Herbarium,"curator, contact"
+NTH_2014,Rachael Gallagher,Macquarie University Sydney,contributor
+Onoda_2010,Yusuke Onoda,Kyoto University,"collector, contact"
+Onoda_2010,Anna Richards,CSIRO,collector
+Onoda_2010,Mark Westoby,Macquarie University Sydney,lab_leader
+Ooi_2007,Mark Ooi,"University of New South Wales, Centre for Ecosystem Science","collector, contact"
+Ooi_2007,Peter Myerscough,"School of Biological Sciences, University of Sydney",collector
+Ooi_2007,Tony Auld,NA,collector
+Ooi_2018,Mark Ooi,"University of New South Wales, Centre for Ecosystem Science","collector, contact, lab_leader"
+OReillyNugent_2018,Andrew O'Reilly-Nugent,University of Canberra,"collector, contact, lab_leader"
+OReillyNugent_2018,Richard P. Duncan,University of Canberra,lab_leader
+Osborne_2014,Colin P. Osborne,"University of Sheffield, Department of Animal and Plant Sciences","collector, contact, lab_leader"
+Osborne_2014,Anna Salomaa,"University of Helsinki, Helsinki Institute of Sustainability Science",assistant
+Osborne_2014,Rachael Gallagher,Macquarie University Sydney,contributor
+Peeters_2002,Paula Peeters,unknown,"collector, contact"
+Peeters_2002,Ian Wright,Macquarie University Sydney,contributor
+Pekin_2011,Burak Pekin,"Istanbul Technical University, Turkey","collector, contact"
+Pekin_2011,Rachael Gallagher,Macquarie University Sydney,contributor
+Pickering_2014,Catherine Pickering,"School of Environment, Griffith University",collector
+Pickering_2014,John Morgan,La Trobe University,collector
+Pickering_2014,Susanna Venn,Deakin University,"collector, contact"
+Pickering_2014,Rachael Gallagher,Macquarie University Sydney,contributor
+Pickup_2002,Ian Wright,Macquarie University,"lab_leader, contact, contributor"
+Pickup_2002,Melinda Pickup,CSIRO Plant Industry,collector
+Pickup_2005,Ian Wright,Macquarie University,"lab_leader, contact, contributor"
+Pickup_2005,Melinda Pickup,CSIRO Plant Industry,collector
+Pollock_2012,Laura Pollock,"CNRS, University Grenoble Alpes",collector
+Pollock_2012,William Morris,University of Melbourne,"collector, contact"
+Pollock_2012,Peter Vesk,University of Melbourne,lab_leader
+Pollock_2018,Laura Pollock,"CNRS, University Grenoble Alpes",collector
+Pollock_2018,William Morris,University of Melbourne,"collector, contact"
+Pollock_2018,Peter Vesk,University of Melbourne,lab_leader
+Prior_2003,Lynda Prior,University of Tasmania,"collector, contact"
+Prior_2003,David Bowman,University of Tasmania,lab_leader
+Prior_2003,Ian Wright,Macquarie University Sydney,contributor
+Prior_2016,Lynda Prior,University of Tasmania,"collector, contributor, contact"
+Prior_2016,David Bowman,University of Tasmania,lab_leader
+Prior_2016,Dominic Neyland,University of Tasmania,assistant
+Prior_2016,Rob Polmear,University of Tasmania,assistant
+RBGK_2014,Udayangani Liu,Kew Botanic Gardens,contact
+RBGK_2014,Rachael Gallagher,Macquarie University Sydney,contributor
+RBGSYD_2014,Marco Duretto,National Herbarium of NSW,curator
+RBGSYD_2014,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+RBGSYD_2014_2,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Read_2003,Jennifer Read,"School of Biological Sciences, Monash University","contact, collector, lab_leader"
+Read_2003,Gordon Sanson,"School of Biological Sciences, Monash University",collector
+Read_2005,Jennifer Read,"School of Biological Sciences, Monash University","contact, collector, lab_leader"
+Read_2005,Gordon Sanson,"School of Biological Sciences, Monash University",collector
+Read_2005,Byron Lamont,Curtin University,collector
+Reynolds_2018,Victoria Reynolds,"School of Biological Sciences, University of Queensland",collector
+Reynolds_2018,Margaret Mayfield,"School of Biological Sciences, University of Queensland","lab_leader, contributor, contact"
+Rice_1991,Barbara Rice,Macquarie University Sydney,collector
+Rice_1991,Mark Westoby,Macquarie University Sydney,"lab_leader, contact"
+Rice_1991,Ian Wright,Macquarie University Sydney,contributor
+Richards_2003,Anna Richards,CSIRO,"collector, contact"
+Richards_2003,Susanne Schmidt,University of Queensland,lab_leader
+Richards_2003,Alison Shapcott,University of the Sunshine Coast,assistant
+Richards_2003,Rachael Gallagher,Macquarie University Sydney,contributor
+Richards_2008,Anna Richards,CSIRO,collector
+Richards_2008,Ian Wright,Macquarie University,contributor
+Roberts_2006,Bryan Roberts,unknown,collector
+Roberts_2006,John Morgan,La Trobe University,lab_leader
+Roberts_2006,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Roderick_1999,Michael Roderick,Australian National University,"contributor, contact"
+Roderick_2002,Michael Roderick,Australian National University,"contributor, contact"
+Roderick_2002,Michelle Cochrane,Australian National University,contributor
+Rosell_2014,Julieta A. Rosell,National Autonomous University of Mexico,"collector, contact"
+Rosell_2014,Mark Westoby,Macquarie University Sydney,lab_leader
+Rye_2002,Barbara Rye,Western Australian Herbarium,"collector, contact"
+Rye_2002,Rachael Gallagher,Macquarie University Sydney,contributor
+Rye_2006,Barbara Rye,Western Australian Herbarium,"collector, contact"
+Rye_2006,Rachael Gallagher,Macquarie University Sydney,contributor
+Rye_2009_1,Barbara Rye,Western Australian Herbarium,"collector, contact"
+Rye_2009_1,Rachael Gallagher,Macquarie University Sydney,contributor
+Rye_2009_2,Barbara Rye,Western Australian Herbarium,"collector, contact"
+Rye_2009_2,Rachael Gallagher,Macquarie University Sydney,contributor
+Rye_2013_1,Barbara Rye,Western Australian Herbarium,"collector, contact"
+Rye_2013_1,Rachael Gallagher,Macquarie University Sydney,contributor
+Rye_2013_2,Barbara Rye,Western Australian Herbarium,"collector, contact"
+Rye_2013_2,Rachael Gallagher,Macquarie University Sydney,contributor
+Rye_2015,Barbara Rye,Western Australian Herbarium,"collector, contact"
+Rye_2015,Rachael Gallagher,Macquarie University Sydney,contributor
+SAH_2014,Jürgen Kellermann,"State Herbarium of South Australia; School of Biological Sciences, The University of Adelaide",curator
+SAH_2014,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Sams_2017,Michael Sams,University of Queensland,collector
+Sams_2017,Margaret Mayfield,University of Queensland,"contributor, lab_leader"
+Sams_2017,Hoa Ran Lai,University of Queensland,collector
+Sams_2017,Daniel Metcalfe,CSIRO,collector
+Sams_2017,Robert Kooyman,Royal Botanic Gardens Sydney; Macquarie University,collector
+Schmidt_1993,Susanne Schmidt,University of Queensland,"collector, contact"
+Schmidt_1993,Ian Wright,Macquarie University,contributor
+Schmidt_1997,Susanne Schmidt,University of Queensland,"collector, contact"
+Schmidt_1997,George Stewart,University of Queensland,collector
+Schmidt_1997,Ian Wright,Macquarie University Sydney,contributor
+Schmidt_2003,Susanne Schmidt,University of Queensland,"collector, contact"
+Schmidt_2003,George Stewart,University of Queensland,collector
+Schmidt_2003,Ian Wright,Macquarie University Sydney,contributor
+Schmidt_2010,Susanne Schmidt,University of Queensland,"collector, contact"
+Schmidt_2010,Ian Wright,Macquarie University Sydney,contributor
+Schulze_1998,Ernst-Detlef Schulze,Max-Planck Institute for Biogeochemistry,"collector, contact"
+Schulze_1998,Willi A. Brand,Max-Planck Institute for Biogeochemistry,collector
+Schulze_1998,Waltraud Schulze,unknown,assistant
+Schulze_1998,Inge Schulze,Max-Planck Institute for Biogeochemistry,assistant
+Schulze_1998,R.J.Williams,NA,assistant
+Schulze_2006,Ernst-Detlef Schulze,Max-Planck Institute for Biogeochemistry,collector
+Schulze_2006,Neil C. Turner,University of Western Australia,collector
+Schulze_2006,Dean Nicolle,Currency Creek Arboretum,collector
+Schulze_2006,Willi A. Brand,Max-Planck Institute for Biogeochemistry,collector
+Schulze_2006_2,Ernst-Detlef Schulze,Max-Planck Institute for Biogeochemistry,"collector, contact"
+Schulze_2006_2,Neil C. Turner,University of Western Australia,collector
+Schulze_2006_2,Dean Nicolle,Currency Creek Arboretum,collector
+Schulze_2006_2,Inge Schulze,Max-Planck Institute for Biogeochemistry,assistant
+Schulze_2014,Ernst-Detlef Schulze,Max-Planck Institute for Biogeochemistry,"collector, contact, lab_leader"
+Scott_2010,Andrew John Scott,La Trobe University,collector
+Scott_2010,John Morgan,La Trobe University,lab_leader
+Scott_2010,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Sendall_2016,Kerrie Sendall,University of Minnesota,collector
+Sendall_2016,Christopher Lusk,University of Waikato,"collector, contact"
+Sjostrom_2006,Caroline Gross,University of New England,"collector, contact"
+Sjostrom_2006,Anne Sjostrom,University of New England,collector
+Smith_1996,Benjamin Smith,"Hawkesbury Institute for the Environment, Western Sydney University","collector, contact"
+Smith_1996,J. Bastow Wilson,"Botany Department, University of Otago, Dunedin, NZ",lab_leader
+Smith_2012,Renee Smith,"Hawkesbury Institute for the Environment, Western Sydney University","collector, contact"
+Smith_2012,David Tissue,"Hawkesbury Institute for the Environment, Western Sydney University",lab_leader
+Soliveres_2012,Santiago Soliveres,Bern University,"collector, contact"
+Soliveres_2012,Rachael Gallagher,Macquarie University Sydney,contributor
+Soper_2014,Fiona Soper,Cornell University,collector
+Soper_2014,Susanne Schmidt,University of Queensland,"lab_leader, collector, contact"
+Standish_2019,Rachel Standish,"School of Veterinary and Life Sciences, Murdoch University","collector, contact, lab_leader"
+Standish_2019,Matthew Daws,"Environment Department, Alcoa of Australia, Huntly, Western Australia",collector
+Staples_2019,Timothy Staples,University of Queensland,"contact, collector"
+Staples_2019,Margaret Mayfield,University of Queensland,lab_leader
+Staples_2019,John M. Dwyer,University of Queensland,lab_leader
+Stephens_2021,Ruby Stephens,"Macquarie University Sydney, Royal Botanic Gardens Sydney","collector, contact"
+Stephens_2021,Rachael Gallagher,Macquarie University Sydney,lab_leader
+Stewart_1995,George Stewart,University of Queensland,"collector, lab_leader"
+Stewart_1995,Susanne Schmidt,University of Queensland,collector
+Stewart_1995,Ian Wright,Macquarie University,contributor
+Taseski_2017,Guy Taseski,University of New South Wales,collector
+Taseski_2017,William Cornwell,University of New South Wales,"contact, lab_leader"
+Taylor_2008,Daniel Taylor,"Institute for Water and Environmental Resource Management, University of Technology Sydney",collector
+Taylor_2008,Derek Eamus,"Institute for Water and Environmental Resource Management, University of Technology Sydney","collector, contact"
+Thomas_2017,Freya Thomas,University of Melbourne,"collector, contact"
+Thomas_2017,Peter Vesk,University of Melbourne,lab_leader
+Thompson_2001,Ian Thompson,University of Melbourne,"collector, contact"
+Thompson_2001,Rachael Gallagher,Macquarie University Sydney,contributor
+TMAG_2009,Marco Duretto,National Herbarium of NSW,curator
+TMAG_2009,Miguel de Salas,Tasmanian Herbarium,curator
+TMAG_2009,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Tng_2013,Yue Phin David Jeremiah-Seok Tng,"Institute of Biology, Federal University of Bahia, R. Bario Jeremoabo, Ondina, 40170-115 Salvador, Bahia, Brazil","collector, contact"
+Tng_2013,David Bowman,University of Tasmania,lab_leader
+Tng_2013,Gregory Jordan,University of Tasmania,lab_leader
+Tng_2013,Rachael Gallagher,Macquarie University Sydney,contributor
+Toelken_1996,Hellmut R. Toelken,State Herbarium of South Australia,collector
+Toelken_1996,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Tomlinson_2013,Kyle Tomlinson,Xishuangbanna Tropical Botanic Garden,"collector, contact"
+Tomlinson_2013,Rachael Gallagher,Macquarie University Sydney,contributor
+Tomlinson_2019,Kyle Tomlinson,Xishuangbanna Tropical Botanic Garden,"collector, contact"
+Tomlinson_2019,Frank van Langevelde,"Wildlife Ecology & Conservation Group, Wageningen University, The Netherlands",collector
+Trudgen_2005,Malcolm Trudgen,Western Australian Herbarium,collector
+Trudgen_2005,Barbara Rye,Western Australian Herbarium,collector
+Trudgen_2005,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Trudgen_2014,Malcolm Trudgen,Western Australian Herbarium,collector
+Trudgen_2014,Barbara Rye,Western Australian Herbarium,collector
+Trudgen_2014,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+Turner_2010,Ernst-Detlef Schulze,Max-Planck Institute for Biogeochemistry,"contact, collector"
+Turner_2010,Neil C. Turner,University of Western Australia,collector
+Turner_2010,Willi A. Brand,Max-Planck Institute for Biogeochemistry,collector
+Turner_2010,Ian Kealley,unknown,assistant
+Turner_2010,Christiane Ludwig,unknown,assistant
+Veneklaas_2003,Erik Veneklaas,University of Western Australia,"contact, lab_leader, collector"
+Veneklaas_2003,Pieter Poot,University of Western Australia,collector
+Venn_2011,Susanna Venn,Deakin University,"collector, contact"
+Venn_2011,Catherine Pickering,"School of Environment, Griffith University",collector
+Venn_2011,John Morgan,La Trobe University,collector
+Venn_2011,Rachael Gallagher,Macquarie University Sydney,contributor
+Vesk_2004,Peter Vesk,University of Melbourne,"collector, contact, contributor"
+Vesk_2004,Mark Westoby,Macquarie University Sydney,lab_leader
+Vesk_2007,Peter Vesk,University of Melbourne,"collector, contact"
+Vesk_2019,Peter Vesk,University of Melbourne,"collector, contact, lab_leader"
+Vesk_2019,Jian Yen,University of Melbourne,assistant
+Vlasveld_2018,Carolyn Vlasveld,"School of Biological Sciences, Monash University","collector, contact"
+WAH_1998,Grazyna Paczkowska,Western Australian Herbarium,collector
+WAH_1998,Alex Chapman,"Western Australian Herbarium, Gaia Resources, Environmental Technology Consultants",collector
+WAH_1998,John Huisman,Western Australian Herbarium,"curator, contact"
+WAH_1998,Ben Richardson,Western Australian Herbarium,curator
+WAH_1998,Amanda Spooner,Western Australian Herbarium,curator
+WAH_1998,Helen Coleman,Western Australian Herbarium,curator
+WAH_1998,Rachael Gallagher,Macquarie University Sydney,contributor
+WAH_2016,Grazyna Paczkowska,Western Australian Herbarium,collector
+WAH_2016,Alex Chapman,Western Australian Herbarium,collector
+WAH_2016,John Huisman,Western Australian Herbarium,"curator, contact"
+WAH_2016,Rachael Gallagher,Macquarie University Sydney,contributor
+Warren_2005,Charles Warren,Sydney University,"lab_leader, contributor, collector, contact"
+Warren_2006,Charles Warren,Sydney University,"lab_leader, contributor, collector, contact"
+Weerasinghe_2014,Lasantha K. Weerasinghe,"Research School of Biology, Australian National University",collector
+Weerasinghe_2014,Owen Atkin,"Research School of Biology, Australian National University",lab_leader
+Weerasinghe_2014,Kristine Crous,"Hawkesbury Institute for the Environment, Western Sydney University","collector, contact, contributor"
+Wells_2012,Jessie Wells,University of Queensland,"collector, contact"
+Wells_2012,Hugh Possingham,University of Queensland,lab_leader
+Wells_2012,John Kanowski,Australian Wildlife Conservancy,collector
+Westman_1977,W.E Westman,"Department of Botany, University of Queens-land, St Lucia, Australia",collector
+Westman_1977,Anna Richards,CSIRO,contributor
+Westoby_2003,Ian Wright,Macquarie University Sydney,"collector, contributor"
+Westoby_2003,Mark Westoby,Macquarie University Sydney,"lab_leader, contact"
+Westoby_2004,Mark Westoby,Macquarie University Sydney,"lab_leader, contact"
+Westoby_2004,Ian Wright,Macquarie University Sydney,contributor
+Westoby_2004,Erica Williams,Macquarie University Sydney,assistant
+Westoby_2014,Sean Gleason,USDA,"collector, contact"
+Westoby_2014,Chris Blackman,Western Sydney University,collector
+Westoby_2014,Mark Westoby,Macquarie University Sydney,lab_leader
+Westoby_2014,Don Butler,Macquarie University Sydney,collector
+Westoby_2014,Kasia Zieminska,"Department of Plant Ecology and Evolution, Uppsala University, Uppsala, Sweden",collector
+Wheeler_2002,Rachael Gallagher,Macquarie University Sydney,"contributor, contact"
+White_2020,Matthew White,"Department of Environment, Land, Water and Planning, Victoria","collector, contact"
+White_2020,Steven Sinclair,"Department of Environment, Land, Water and Planning, Victoria",collector
+White_2020,Doug Frood,Pathways Bushland and Environment Consultancy,collector
+Williams_2005,Nick Williams,University of Melbourne,"collector, contact"
+Williams_2005,John Morgan,La Trobe University,collector
+Williams_2011,Nick Williams,University of Melbourne,"collector, contact"
+Williams_2011,Peter Vesk,University of Melbourne,collector
+Williams_2011,Amy Hahs,University of Melbourne,collector
+Williams_2011,Richard P. Duncan,University of Canberra,collector
+Williams_2011,Catherine Tait,University of Adelaide,assistant
+Williams_2011,Monique Hallet,University of Adelaide,assistant
+Williams_2011,Steven Clemants,Brooklyn Botanic Garden,assistant
+Wills_2018,Jarrah Wills,"School of Agriculture and Food Science, University of Queensland","contact, collector"
+Wills_2018,Jennifer Firn,Queensland University of Technology,lab_leader
+Wills_2018,John Herbohn,"School of Agriculture and Food Science, University of Queensland",lab_leader
+Wills_2018,Jing Hu,"School of Agriculture and Food Science, University of Queensland",assistant
+Wilson_2008,Peter Wilson,National Herbarium of NSW,"collector, contact"
+Wilson_2008,Rachael Gallagher,Macquarie University Sydney,contributor
+Wright_2000,Harold Trevor Clifford,University of Queensland,collector
+Wright_2000,Mark Westoby,Macquarie University Sydney,lab_leader
+Wright_2000,Ian Wright,Macquarie University Sydney,"contributor, contact"
+Wright_2001,Ian Wright,Macquarie University Sydney,"collector, contact, contributor"
+Wright_2001,Martin Henery,CSIRO,collector
+Wright_2001,Mark Westoby,Macquarie University Sydney,lab_leader
+Wright_2002,Ian Wright,Macquarie University Sydney,"collector, contact, contributor"
+Wright_2002,Tanja Lenz,Macquarie University Sydney,collector
+Wright_2002,Amy Zanne,George Washington University,collector
+Wright_2002,Mark Westoby,Macquarie University Sydney,lab_leader
+Wright_2006,Ian Wright,Macquarie University Sydney,"contact, contributor"
+Wright_2006,Daniel Falster,Macquarie University Sydney,collector
+Wright_2006,Mark Westoby,Macquarie University Sydney,lab_leader
+Wright_2008,Ian Wright,Macquarie University Sydney,"collector, contributor, lab_leader"
+Wright_2008,Caroline Lehmann,University of Edinburgh,"collector, contact"
+Wright_2008,Anna Richards,CSIRO,collector
+Wright_2009,Ian Wright,Macquarie University,"collector, contact, contributor"
+Wright_2009,Ule Niinemets,Estonian University of Life Sciences,collector
+Wright_2009,Liz Lindsay,Macquarie University,collector
+Wright_2009,Mark Westoby,Macquarie University,lab_leader
+Wright_2019,Ian Wright,Macquarie University Sydney,"collector, contributor, lab_leader"
+Zanne_2007,Amy Zanne,George Washington University,"collector, contact"
+Zanne_2007,Mark Westoby,Macquarie University Sydney,lab_leader
+Zanne_2007,Ian Wright,Macquarie University Sydney,contributor
+Zanne_2009,Amy Zanne,George Washington University,"contributor, contact"
+Zieminska_2013,Kasia Zieminska,"Department of Plant Ecology and Evolution, Uppsala University, Uppsala, Sweden","collector, contact"
+Zieminska_2013,Ian Wright,Macquarie University Sydney,collector
+Zieminska_2013,Mark Westoby,Macquarie University Sydney,lab_leader
+Zieminska_2015,Kasia Zieminska,"Department of Plant Ecology and Evolution, Uppsala University, Uppsala, Sweden","collector, contact"
+Zieminska_2015,Ian Wright,Macquarie University Sydney,collector
+Zieminska_2015,Mark Westoby,Macquarie University Sydney,lab_leader

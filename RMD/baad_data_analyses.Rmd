@@ -1,0 +1,115 @@
+---
+title: "BAAD data"
+output: html_document
+date: '2022-07-29'
+---
+
+```{r}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+```
+
+Plotting trajectories of individuals.
+
+Plant output includes data for nodes (individuals) and stands (totals).
+- Except for density, data for nodes are values for individuals (e.g. mass of individual)
+  Data for stands are amount per ground area
+
+BAAD data
+
+-- "light environment" = light, "age" = age, "leaf area" = a.lf, "height" = h.t, "stem area at base/breast height/crown base" = a.stba/a.stbh/a.stbc, "dbh" = d.bh, "leaf mass" = m.lf, "total mass" = m.to, "wood density" = r.st, "leaf mass per area" = ma.ilf, "aboveground mass" = m.so, "leaf [nitrogen]" = n.lf
+
+-- 176 studies
+-- 678 unique species
+
+
+```{r}
+baad_data <- read.csv("baad_data.csv", header = TRUE) %>%
+  mutate(
+    area_leaf = a.lf,
+    height = h.t,
+    mass_above_ground = m.so,
+    mass_heartwood = m.sh,
+    mass_sapwood = m.ss,
+    time = age,
+    diameter_stem = d.bh,
+    node = 1,
+    species = 1
+  )
+
+baad_data_dictionary <- read.csv("../self-thinning/baad_dictionary.csv", header = TRUE) %>% rbind()
+baad_data_dictionary$label
+
+variables_names <- baad_data_dictionary$label
+```
+
+Grow a stand:  
+```{r}
+examplestand <- grow_tidy_expand_totals(hmat = 15, a_dG2 = 30)
+
+example_stand_nodes <- examplestand$patch_expand$species %>% na.omit() %>%
+  group_by(node) %>%
+  mutate(age = time - min(time),
+         studyName = "plant model")
+```
+
+Format dataframes:
+```{r}
+vars <- c("area_leaf", "mass_above_ground", "mass_sapwood", "mass_heartwood")
+labels <- tibble(name = vars, label = c("leaf area", "above-ground mass", "sapwood mass", "heartwood mass"))
+
+baad_data <- baad_data %>% select(time, age, node, species, height, diameter_stem, vars) %>%
+  pivot_longer(vars) %>%
+  left_join(labels)
+
+example_stand_nodes <- example_stand_nodes %>% select(time, age, node, species, height, diameter_stem, vars) %>%
+  pivot_longer(vars) %>%
+  left_join(labels)
+```
+
+slightly different heights at times
+
+- remove reproduction to extend growth/life
+  
+# Plot individual against BAAD data
+```{r}
+height_plots <- ggplot() +
+  geom_point(data = baad_data, aes(height, value, group = node), col = "grey", size = 0.5) +
+  geom_line(data = example_stand_nodes, aes(height, value, group = node), col = "turquoise", size = 0.1) +
+  facet_wrap(~label, scales = "free") +
+  scale_x_log10(labels = scales::comma) +
+  scale_y_log10() +
+  xlab("log height (m)") +
+  ylab("log value") +
+  theme_classic(base_size = 18)
+
+stem_diameter_plots <- ggplot() +
+  geom_point(data = baad_data, aes(diameter_stem, value, group = node), col = "grey", size = 0.5) +
+  geom_line(data = example_stand_nodes, aes(diameter_stem, value, group = node), col = "turquoise", size = 0.1) +
+  facet_wrap(~label, scales = "free") +
+  scale_x_log10(labels = scales::comma) +
+  scale_y_log10() +
+  xlab("log stem diameter (m)") +
+  ylab("log value") +
+  theme_classic(base_size = 18)
+
+p1 = ggplot() +
+  geom_point(data = baad_data, aes(age, height, group = node), col = "grey", size = 0.5) +
+  geom_line(data = example_stand_nodes, aes(age, height, group = node), col = "turquoise", size = 0.1) +
+  scale_y_log10(labels = scales::comma) +
+  xlim(0, 250) +
+  ylab("log height (m)") +
+  theme_classic(base_size = 18)
+
+p2 = ggplot() +
+  geom_point(data = baad_data, aes(age, diameter_stem, group = node), col = "grey", size = 0.5) +
+  geom_line(data = example_stand_nodes, aes(age, diameter_stem, group = node), col = "turquoise", size = 0.1) +
+  scale_y_log10(labels = scales::comma) +
+  xlim(0, 250) +
+  ylab("log stem diameter (m)") +
+  theme_classic(base_size = 18)
+```

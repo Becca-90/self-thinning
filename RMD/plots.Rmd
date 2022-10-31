@@ -1,0 +1,766 @@
+---
+title: "Plots"
+output: pdf_document
+date: '2022-09-16'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, eval = FALSE}
+#remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+```
+
+```{r load libraries}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+library(ggrepel)
+library(scatterplot3d)
+source("R/grow_tidy_expand_totals.R")
+source("R/run_mypatch.R")
+source("R/thinning_plot.R")
+source("R/plot_stand.R")
+source("R/find_closest_timestamps.R")
+source("R/interpolate_to_stem_diameter.R")
+
+#install.packages("ggforce")
+library("ggforce")
+```
+
+```{r activate logger}
+plant_log_console()
+```
+
+# 1. Intro plot
+typical stand + image panels + seed rain stls + empirical vs plant
+```{r}
+examplestand <- grow_tidy_expand_totals(a_dG2 = 30)
+patch_totals <- examplestand$patch_total %>%
+  mutate(
+    study = "plant",
+    replicate = 1
+    ) %>%
+  group_by(study, species)
+
+typical_stand = patch_totals %>%
+  ggplot(aes(diameter_stem_av, density)) +
+  geom_abline(intercept = log(0.07), slope = -3/1.5, linetype = "dashed") +
+  geom_line() +
+  scale_x_log10(name = "log mean stem diameter (m)") +
+  scale_y_log10(name = "log density " ~ (m^2), limits = c(0.001, 200), labels = scales::comma) +
+  theme_classic(base_size = 18) + 
+  annotate(geom = "segment", x = 0.0011, y = 0.002, xend = 0.0011, yend = 16, size = 1, alpha=0.6, arrow = arrow(length = unit(2.5, "mm"), type = "closed")) +
+  annotate(geom = "segment", x = 0.0015, y = 28, xend = 0.005, yend = 28, size = 1, alpha=0.6, arrow = arrow(length = unit(2.5, "mm"), type = "closed")) +
+  annotate(geom = "segment", x = 0.006, y = 22, xend = 0.12, yend = 0.055, size = 1, alpha=0.6, arrow = arrow(length = unit(2.5, "mm"), type = "closed")) +
+  geom_label(aes(x = 0.00135, y = 0.02, label = "1", colour = "red")) +
+  geom_label(aes(x = 0.0014, y = 14, label = "2", colour = "red")) +
+  geom_label(aes(x = 0.005, y = 14, label = "3", colour = "red")) +
+  geom_label(aes(x = 0.019, y = 0.9, label = "4", colour = "red")) +
+  geom_label(aes(x = 0.15, y = 0.02, label = "5", colour = "red")) +
+  theme(legend.position = "none")
+
+
+birth_rate_runs <- c(0.1, 1, 10, 100, 1000) %>% set_names(.) %>% map(~grow_tidy_expand_totals(birth_rate = .x, hmat = 10, a_dG2 = 30, schedule_eps = 0.0005))
+
+birth_rate_total <-
+  birth_rate_runs %>% map_dfr(~.x$patch_total, .id = "trait_value")
+
+birth_rates_stls = thinning_plot(birth_rate_total, xvar = "diameter_stem_av", xlims = c(5e-4, 2e-01), xlab = "mean stem diameter (m)", ylims = c(1e-2, 2e3))
+
+birth_rates_stls = birth_rate_total %>%
+  filter(time > 0.1) %>%
+      mutate(
+        my_label = find_closest(round(time, 2), at = c(10)),
+        diameter_stem_av_cm = diameter_stem_av*100
+      ) %>%
+  ggplot(aes(diameter_stem_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(limits = c(0.001, 2.0), labels = scales::comma, name = "log mean stem diameter (m)") +
+  scale_y_log10(limits = c(0.001, 1000), labels = scales::comma, name = "log density " ~ (m^2)) +
+  theme_classic(base_size = 18) +
+  theme(legend.position = "none")
+
+ggsave(birth_rates_stls, filename = "../self-thinning/birth_rates_stls.pdf")
+
+library(png)
+panels_path <- "self_thinning_panels_finalpng.png"
+self_thinning_panels <- readPNG(panels_path, native = TRUE, info = TRUE)
+
+intro_plot1 = (typical_stand + self_thinning_panels) / (birth_rates_stls + plot_spacer()) +
+  plot_annotation(tag_levels = 'a') + 
+  plot_layout(widths = c(2,1.5))
+
+ggsave(intro_plot1, filename = "../self-thinning/intro_plot2.pdf", width = 12, height = 10)
+```
+
+
+# 2. Varied initial density and HMATs
+self-thinning plots
+```{r}
+# Varied seed mass
+SM_vals = c(2.00e-07, 4.02e-06, 3.69e-05)   #0.00402 total SM?
+SM_birth_rates =  c(20100, 1000, 108.9431)
+SM_data = tibble(SM_vals, SM_birth_rates)
+seed_mass_runs <- map2(SM_data$SM_vals, SM_data$SM_birth_rates, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "omega"), a_dG2 = 30, birth_rate = .y), .id = "trait_value") %>% set_names(c("low", "mid", "high"))
+
+seed_mass_totals <-
+  seed_mass_runs %>% map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(run = "Seed Mass")
+
+seed_mass_totals$trait_value <- factor(seed_mass_totals$trait_value, levels=c("low", "mid", "high"))
+
+SM_stl = thinning_plot(seed_mass_totals, xvar = "diameter_stem_av", xlims = c(0.00005, 1.0), xlab = "mean stem diameter (m)", ylims = c(0.01, 10000))
+
+# Varied HMATs
+hmat_runs <- c(1, 2, 5, 8, 12, 16, 20) %>% set_names(c("1m", "2m", "5m", "8m", "12m", "16m", "20m")) %>% map(~grow_tidy_expand_totals(traits=trait_matrix(.x, "hmat"), a_dG2 = 30, a_f1 = 1))
+
+hmat_total <-
+  hmat_runs %>% map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(run = "HMAT")
+
+hmat_stls = hmat_total %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(10)),
+    diameter_stem_av_cm = diameter_stem_av*100
+  ) %>%
+  ggplot(aes(diameter_stem_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  #geom_text(aes(label=my_label), hjust=-1, vjust=0) +
+  scale_x_log10(limits = c(0.0015, 2.0), labels = scales::comma, name = "log mean stem diameter (m)") +
+  scale_y_log10(limits = c(0.0001, 1000), labels = scales::comma, name = "log density " ~ (m^2)) +
+  theme_classic(base_size = 20) +
+  theme(legend.position = "none") +
+  ggtitle("Self-thinning under varied HMAT")
+
+ggsave(hmat_stls, filename = "../self-thinning/hmat_stls.pdf", width = 10, height = 8)
+
+hmats_seedmass_totals = bind_rows(seed_mass_totals, hmat_total)
+
+hmats_birthrates_stls = hmats_seedmass_totals %>%
+  filter(time>0.01) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(5)),
+    diameter_stem_av_cm = diameter_stem_av*100
+  ) %>%
+  ggplot(aes(diameter_stem_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(limits = c(0.0005, 2.0), labels = scales::comma, name = "log mean stem diameter (m)") +
+  scale_y_log10(breaks=c(0.01,1.0,100,1000), limits = c(0.0001, 5000), labels = scales::comma, name = "log density " ~ (m^2)) +
+  theme_classic(base_size = 18) +
+  theme(legend.position = "none") +
+  facet_wrap(~run)
+
+
+ geom_text(data = . %>% filter(date == max(date)),
+            aes(color = Province_State, x = as.Date(Inf),
+                y = deaths_roll7_100k),
+            hjust = 0, size = 4, vjust = 0.7,
+            label = c("Arizona\n", "North Carolina"))
+
+  geom_label_repel(aes(label = label),
+                   nudge_x = 1,
+                   na.rm = TRUE)
+  
+ggsave(hmats_birthrates_stls, filename = "../self-thinning/hmats_seedmass_stls.pdf", height = 6, width = 12)
+```
+
+
+# 3. Visualise trade-offs
+```{r}
+lma_ll_tradeoff = expand_grid(lma = seq(0.01, 0.4, by=0.001), B_kl2=c(0.5, 1.5, 2.2)) %>% rowwise() %>%
+  mutate(
+    ll=map2_dbl(lma, B_kl2, ~0.4565855*(.x/0.1978791)^-(.y))
+  ) %>%
+  filter(lma>0.02) %>%
+  ggplot(aes(lma, ll, linetype=as.character(B_kl2))) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 20) +
+  xlab("log LMA " ~ (kg/m^2)) +
+  ylab("log Leaf Turnover " ~(yr^-1)) + labs(colour="trade-off exponent") +
+  theme(legend.position = "none")
+
+ggsave(lma_ll_tradeoff, filename = "../self-thinning/lma_ll_tradeoff.pdf", height=7, width=8)
+
+amax_resp <- expand_grid(narea = seq(0.001, 0.005, by=0.0001), B_lf5 = c(0.2, 1, 2), B_lf4 = 21000) %>%
+  mutate(
+    amax=map2_dbl(narea, B_lf5, ~0.8273474*(.x/1.87e-3)^.y),
+    resp=map2_dbl(narea, B_lf4, ~.y*(.x/0.08))
+    )
+
+n_amax <- ggplot(amax_resp, aes(narea, amax, linetype=as.character(B_lf5))) + 
+  geom_line() +
+  theme_classic(base_size = 12) +
+  xlab("log Narea "  ~ (kg/m^2)) +
+  ylab("log Amax " ~(yr^-1)) + labs(colour="trade-off exponent") +
+  theme(legend.position = "none")
+
+n_resp <- ggplot(amax_resp, aes(narea, resp, linetype=as.character(B_lf4))) + 
+  geom_line() +
+  theme_classic(base_size = 12) +
+  xlab("log Narea" ~(kg/m^2)) +
+  ylab("log Respiration " ~(yr^-1)) + labs(colour="trade-off exponent") +
+  theme(legend.position = "none")
+
+amax_resp_tradeoff <- ggplot(amax_resp, aes(resp, amax, linetype=as.character(B_lf5))) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 12) +
+  xlab("log Respiration " ~(yr^-1)) +
+  ylab("log Amax " ~(yr^-1)) + labs(colour="trade-off exponent") +
+  theme(legend.position = "none")
+
+DI_KS <- expand_grid(rho=seq(400, 800, by=10), B_dI2=c(0, 2, 4), B_ks2=c(0, 2, 4))%>% rowwise() %>% 
+  mutate(
+  DI = map2_dbl(rho, B_dI2, ~0.01*(.x/608)^-(.y)),
+  KS = map2_dbl(rho, B_ks2, ~0.2*(.x/608)^-(.y)),
+  tradeoff_strength = recode(B_ks2, '0' = 'weak', '2' = 'mid', '4' = 'strong')
+  )
+
+wd_di_tradeoff <- ggplot(DI_KS, aes(rho, DI, linetype=as.character(B_dI2))) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 12) +
+  xlab("log Wood Density " ~ (kg/m^3)) +
+  ylab("log Mortality " ~(yr^-1)) + labs(colour="trade-off exponent") +
+  theme(legend.position = "none")
+
+DI_KS$tradeoff_strength <- factor(DI_KS$tradeoff_strength, levels=c("weak", "mid", "strong"))
+wd_ks_tradeoff <- ggplot(DI_KS, aes(rho, KS, linetype=tradeoff_strength)) + 
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 12) +
+  xlab("log Wood Density " ~ (kg/m^3)) +
+  ylab("log Wood Turnover " ~(yr^-1)) +
+  labs(linetype="Trade-off Strength")
+```
+
+
+# 4. Vary trade-off strength
+self-thinning plots
+```{r}
+# LMA-LL: k_l <- B_kl1 * (lma/lma_0)^(-B_kl2)
+lmas <- c(trait_values$lma[[1]], trait_values$lma[[2]], trait_values$lma[[3]])
+b_kl2=c(0.5, 1.5, 2.2)
+lma_bkl2 = expand_grid(lmas, b_kl2)
+
+lma_bkl2_runs <- map2(lma_bkl2$lmas, lma_bkl2$b_kl2, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), B_kl2 = .y, a_dG2 = 30), .id = "trait_value")
+
+lma_bkl2_totals <- lma_bkl2_runs %>% 
+  map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(trade_off_strength = recode(trait_value, '1' = 'weak', '2' = 'mid', '3' = 'strong', '4' = 'weak', '5' = 'mid', '6' = 'strong', '7' = 'weak', '8' = 'mid', '9' = 'strong'),
+         trait_value = recode(trait_value, '1' = 'low', '2' = 'low', '3' = 'low', '4' = 'mid', '5' = 'mid', '6' = 'mid', '7' = 'high', '8' = 'high', '9' = 'high'),
+         trait = "LMA & LL")
+
+lma_bkl2_totals$trade_off_strength <- factor(lma_bkl2_totals$trade_off_strength, levels=c("weak", "mid", "strong"))
+lma_bkl2_totals$trait_value <- factor(lma_bkl2_totals$trait_value, levels=c("low", "mid", "high"))
+
+# N-AMAX: Amax = B_lf1 * (narea/narea_0)^B_lf5, B_lf1 = 0.8273474, narea_0 = 0.00187, so varies in range 0.77629603291 (low N, small trade-off) to 4.43588711941 (high N, big trade-off)
+n_vals <- c(trait_values$n_kg[[1]], trait_values$n_kg[[2]], trait_values$n_kg[[3]])
+b_lf5=c(0.2, 1, 2)
+n_blf5 = expand_grid(n_vals, b_lf5)
+
+n_blf5_runs <- map2(n_blf5$n_vals, n_blf5$b_lf5, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "narea"), B_lf5 = .y, a_dG2 = 30), .id = "trait_value")
+n_blf5_totals <- n_blf5_runs %>% 
+  map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(trade_off_strength = recode(trait_value, '1' = 'weak', '2' = 'mid', '3' = 'strong', '4' = 'weak', '5' = 'mid', '6' = 'strong', '7' = 'weak', '8' = 'mid', '9' = 'strong'),
+         trait_value = recode(trait_value, '1' = 'low', '2' = 'low', '3' = 'low', '4' = 'mid', '5' = 'mid', '6' = 'mid', '7' = 'high', '8' = 'high', '9' = 'high' ),
+         trait = "N & Amax")
+
+n_blf5_totals$trade_off_strength <- factor(n_blf5_totals$trade_off_strength, levels=c("weak", "mid", "strong"))
+n_blf5_totals$trait_value <- factor(n_blf5_totals$trait_value, levels=c("low", "mid", "high"))
+
+
+# WD-BKS2: k_s = B_ks1 * (rho/rho_0)^(-B_ks2), B_ks1 = 0.2, rho_0 = 608
+wd_vals <- c(trait_values$wd_kg[[1]], trait_values$wd_kg[[2]], trait_values$wd_kg[[3]])
+b_ks2=c(0, 2, 4)
+wd_bks2 = expand_grid(wd_vals, b_ks2)
+
+wd_bks2_runs <- map2(wd_bks2$wd_vals, wd_bks2$b_ks2, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "rho"), B_ks2 = .y, a_dG2 = 30), .id = "trait_value")
+wd_bks2_totals <- wd_bks2_runs %>% 
+  map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(trade_off_strength = recode(trait_value, '1' = 'weak', '2' = 'mid', '3' = 'strong', '4' = 'weak', '5' = 'mid', '6' = 'strong', '7' = 'weak', '8' = 'mid', '9' = 'strong'),
+         trait_value = recode(trait_value, '1' = 'low', '2' = 'low', '3' = 'low', '4' = 'mid', '5' = 'mid', '6' = 'mid', '7' = 'high', '8' = 'high', '9' = 'high'),
+         trait = "WD & Wood Turnover")
+
+wd_bks2_totals$trade_off_strength <- factor(wd_bks2_totals$trade_off_strength, levels=c("weak", "mid", "strong"))
+wd_bks2_totals$trait_value <- factor(wd_bks2_totals$trait_value, levels=c("low", "mid", "high"))
+
+# WD-BDI2: d_I <- B_dI1 * (rho/rho_0)^(-B_dI2) = 0.01 - 
+wd_vals <- c(trait_values$wd_kg[[1]], trait_values$wd_kg[[2]], trait_values$wd_kg[[3]])
+b_di2=c(0, 2, 4)
+wd_bdi2 = expand_grid(wd_vals, b_di2)
+
+wd_bdi2_runs <- map2(wd_bdi2$wd_vals, wd_bdi2$b_di2, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "rho"), B_dI1 = 0.01, B_dI2 = .y, a_dG2 = 30), .id = "trait_value")
+wd_bdi2_totals <- wd_bdi2_runs %>% 
+  map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(trade_off_strength = recode(trait_value, '1' = 'weak', '2' = 'mid', '3' = 'strong', '4' = 'weak', '5' = 'mid', '6' = 'strong', '7' = 'weak', '8' = 'mid', '9' = 'strong'),
+         trait_value = recode(trait_value, '1' = 'low', '2' = 'low', '3' = 'low', '4' = 'mid', '5' = 'mid', '6' = 'mid', '7' = 'high', '8' = 'high', '9' = 'high'),
+         trait = "WD & Mortality")
+
+wd_bdi2_totals$trade_off_strength <- factor(wd_bdi2_totals$trade_off_strength, levels=c("weak", "mid", "strong"))
+wd_bdi2_totals$trait_value <- factor(wd_bdi2_totals$trait_value, levels=c("low", "mid", "high"))
+```
+
+
+Plot trade-off STLs with trade-off visuals above using facet wrap:
+```{r}
+all_tradeoff_totals <- tibble(bind_rows(lma_bkl2_totals, n_blf5_totals, wd_bks2_totals, wd_bdi2_totals))
+all_tradeoff_totals$trait_value <- factor(all_tradeoff_totals$trait_value, levels=c("low", "mid", "high"))
+
+all_tradeoff_stls = all_tradeoff_totals %>%
+  filter(time > 0.1) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(10))
+  ) %>%
+  ggplot(aes(diameter_stem_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_vline(xintercept = 0.1, linetype = "dashed", size = 0.2) +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(limits=c(0.001, 10.0), name = "stem diameter (m)", labels = scales::label_number(accuracy = 0.001)) +
+  scale_y_log10(limits=c(0.01, 100.0), name = "density " ~ (m^2), labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait)
+
+tradeoffs_visuals_stls = (lma_ll_tradeoff | amax_resp_tradeoff | wd_di_tradeoff | wd_ks_tradeoff) / (all_tradeoff_stls) + plot_layout(heights = c(1, 4)) + plot_annotation(tag_levels = 'a')
+
+ggsave(tradeoffs_visuals_stls, filename = "../self-thinning/tradeoffs_visuals_stls.pdf", width=16, height=12)
+```
+
+plot density against leaf area, height, biomass
+```{r}
+all_tradeoff_stls_height = tradeoff_totals_interpolations10 %>%
+  filter(diameter_stem_av <= 0.1, density > 1E-03) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1, 10))
+  ) %>%
+  ggplot(aes(height_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(name = "log mean height (m)") +
+  scale_y_log10(name = "log density " ~ (m^2)) +
+  theme_classic(base_size = 18) +
+  facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait) +
+  theme(legend.position = "none")
+
+all_tradeoff_stls_biomass = tradeoff_totals_interpolations10 %>%
+  filter(diameter_stem_av <= 0.1, density > 1E-03) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1, 10))
+  ) %>%
+  ggplot(aes(mass_above_ground_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(name = "log AG biomass " ~(kg/m^3)) +
+  scale_y_log10(name = "log density " ~ (m^2)) +
+  theme_classic(base_size = 18) +
+  facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait) +
+  theme(legend.position = "none")
+
+all_tradeoff_stls_la = tradeoff_totals_interpolations10 %>%
+  filter(diameter_stem_av <= 0.1, density > 1E-03) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1, 10))
+  ) %>%
+  ggplot(aes(area_leaf_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(name = "log LA " ~(m^2)) +
+  scale_y_log10(name = "log density " ~ (m^2)) +
+  theme_classic(base_size = 18) +
+  facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait)
+
+stls_other_vars = all_tradeoff_stls_height + all_tradeoff_stls_biomass + all_tradeoff_stls_la
+
+ggsave(stls_other_vars, filename = "../self-thinning/stls_other_vars.pdf", width=24, height=6)
+```
+
+plot LA, AGB, height, density against time
+```{r}
+la_time = all_tradeoff_totals %>%
+  #filter(diameter_stem_av <= 0.1) %>%
+  filter(area_leaf_av > 0.1) %>%
+  mutate(my_label = find_closest(round(time, 2), at = c(5))) %>% 
+  ggplot(aes(time, area_leaf_av, col = trait_value, label=my_label)) + 
+    geom_line() +
+    geom_text(aes(label=my_label), hjust=0, vjust=0) +
+    scale_y_log10(name = "log LA " ~(m^2), labels = scales::comma) +
+    theme_classic(base_size = 18) +
+    facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait)
+
+agb_time = all_tradeoff_totals %>%
+  #filter(diameter_stem_av <= 0.1) %>%
+  filter(mass_above_ground_av > 0.1) %>%
+  mutate(my_label = find_closest(round(time, 2), at = c(5))) %>% 
+  ggplot(aes(time, mass_above_ground_av, col = trait_value, label=my_label)) + 
+    geom_line() +
+    geom_text(aes(label=my_label), hjust=0, vjust=0) +
+    scale_y_log10(name = "log AG biomass " ~(kg/m^3), labels = scales::comma) +
+    theme_classic(base_size = 18) +
+    facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait)
+
+height_time = all_tradeoff_totals %>%
+  #filter(diameter_stem_av <= 0.1) %>%
+  filter(height_av > 1.0) %>%
+  mutate(my_label = find_closest(round(time, 2), at = c(5))) %>%
+  ggplot(aes(time, height_av, col = trait_value, label=my_label)) + 
+    geom_line() +
+    geom_text(aes(label=my_label), hjust=0, vjust=0) +
+    scale_y_log10(name = "log height (m)", labels = scales::comma) +
+    theme_classic(base_size = 18) +
+    facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait)
+
+la_agb_height_time = la_time + agb_time + height_time + density_time
+ggsave(la_agb_height_time, filename = "../self-thinning/la_agb_height_time.pdf", width=24, height=6)
+
+density_time = all_tradeoff_totals %>%
+  #filter(diameter_stem_av <= 0.1, density > 1E-03, time > 0.1) %>%
+  filter(time<40) %>%
+  ggplot(aes(time, density, col = trait_value)) + 
+    geom_line() +
+    scale_y_log10() +
+    #scale_x_log10() +
+    theme_classic(base_size = 18) +
+    facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait)
+
+density_time2 = all_tradeoff_totals %>%
+  filter(diameter_stem_av <= 0.1, density > 1E-03, time > 0.1) %>%
+  ggplot(aes(time, density, col = trade_off_strength)) + 
+    geom_line() +
+    scale_y_log10(labels = scales::comma) +
+    scale_x_log10() +
+    theme_classic(base_size = 18) +
+    facet_grid(trait_value~trait)
+
+ggsave(density_time, filename = "../self-thinning/density_time.pdf")
+ggsave(density_time2, filename = "../self-thinning/density_time2.pdf")
+```
+
+Compare amount of variation within equal trait-value stands due to trade-off strength
+(comparing low, mid and high val stands under each trade-off strength)
+```{r}
+lma_b_kl2_runs <- map2(lma_bkl2$lmas, lma_bkl2$b_kl2, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "lma"), B_kl2 = .y, a_dG2 = 30), .id = "run")
+lma_bkl2_totals <- lma_b_kl2_runs %>% 
+  map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(trade_off_strength = trait_value,
+         run = trait_value) %>%
+  mutate(trade_off_strength = recode(trade_off_strength, '1' = 'weak', '2' = 'mid', '3' = 'strong', '4' = 'weak', '5' = 'mid', '6' = 'strong', '7' = 'weak', '8' = 'mid', '9' = 'strong'),
+         trait_value = recode(trait_value, '1' = 'low', '2' = 'low', '3' = 'low', '4' = 'mid', '5' = 'mid', '6' = 'mid', '7' = 'high', '8' = 'high', '9' = 'high'),
+         trait = "LMA & LL")
+
+n_blf5_runs <- map2(n_blf5$n_vals, n_blf5$b_lf5, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "narea"), B_lf5 = .y, a_dG2 = 30), .id = "run")
+n_blf5_totals <- n_blf5_runs %>% 
+  map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(trade_off_strength = trait_value,
+         run = trait_value) %>%
+  mutate(trade_off_strength = recode(trade_off_strength, '1' = 'weak', '2' = 'mid', '3' = 'strong', '4' = 'weak', '5' = 'mid', '6' = 'strong', '7' = 'weak', '8' = 'mid', '9' = 'strong'),
+         trait_value = recode(trait_value, '1' = 'low', '2' = 'low', '3' = 'low', '4' = 'mid', '5' = 'mid', '6' = 'mid', '7' = 'high', '8' = 'high', '9' = 'high'),
+         trait = "N & Amax")
+
+wd_bks2_runs <- map2(wd_bks2$wd_vals, wd_bks2$b_ks2, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "rho"), B_ks2 = .y, a_dG2 = 30), .id = "run")
+wd_bks2_totals <- wd_bks2_runs %>% 
+  map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(trade_off_strength = trait_value,
+         run = trait_value) %>%
+  mutate(trade_off_strength = recode(trade_off_strength, '1' = 'weak', '2' = 'mid', '3' = 'strong', '4' = 'weak', '5' = 'mid', '6' = 'strong', '7' = 'weak', '8' = 'mid', '9' = 'strong'),
+         trait_value = recode(trait_value, '1' = 'low', '2' = 'low', '3' = 'low', '4' = 'mid', '5' = 'mid', '6' = 'mid', '7' = 'high', '8' = 'high', '9' = 'high'),
+         trait = "WD & Wood Turnover")
+
+wd_bdi2_runs <- map2(wd_bdi2$wd_vals, wd_bdi2$b_di2, ~grow_tidy_expand_totals(traits=trait_matrix(.x, "rho"), B_dI1 = 0.01, B_dI2 = .y, a_dG2 = 30), .id = "run")
+wd_bdi2_totals <- wd_bdi2_runs %>% 
+  map_dfr(~.x$patch_total, .id = "trait_value") %>%
+  mutate(trade_off_strength = trait_value,
+         run = trait_value) %>%
+  mutate(trade_off_strength = recode(trade_off_strength, '1' = 'weak', '2' = 'mid', '3' = 'strong', '4' = 'weak', '5' = 'mid', '6' = 'strong', '7' = 'weak', '8' = 'mid', '9' = 'strong'),
+         trait_value = recode(trait_value, '1' = 'low', '2' = 'low', '3' = 'low', '4' = 'mid', '5' = 'mid', '6' = 'mid', '7' = 'high', '8' = 'high', '9' = 'high'),
+         trait = "WD & Mortality")
+
+all_tradeoff_totals <- tibble(bind_rows(lma_bkl2_totals, n_blf5_totals, wd_bks2_totals, wd_bdi2_totals))
+all_tradeoff_totals$trade_off_strength <- factor(all_tradeoff_totals$trade_off_strength, levels=c("weak", "mid", "strong"))
+all_tradeoff_totals$trait_value <- factor(all_tradeoff_totals$trait_value, levels=c("low", "mid", "high"))
+
+all_tradeoff_stls = all_tradeoff_totals %>%
+  filter(time > 0.1) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(10))
+  ) %>%
+  ggplot(aes(diameter_stem_av, density, col = trade_off_strength, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(limits=c(0.001, 10.0), name = "stem diameter (m)", labels = scales::label_number(accuracy = 0.001)) +
+  scale_y_log10(limits=c(0.01, 100.0), name = "density " ~ (m^2), labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_grid(trait~trait_value)
+```
+
+# 5. Interpolations
+interpolating with approx function
+
+approx(x, y, xout, method="linear", n=50, yleft, yright, rule = 1, f = 0, ties = mean)
+x, y: vectors of points to be interpolated, 
+xout: an optional set of values specifying where interpolation is to take place e.g. stem diameter we want to interpolate
+method: "linear" or "constant"
+```{r}
+all_runs <- list(lma_bkl2_runs, n_blf5_runs, wd_bdi2_runs, wd_bks2_runs)
+
+interpolations10 <- list("", "", "", "")
+
+for(i in c(1:4)) {
+  interpolations10[[i]] <- map_df(c(1:9), ~interpolate_stem_diam(all_runs[[i]][[.x]]$patch_total$diameter_stem_av, all_runs[[i]][[.x]]$patch_total$density, xout=0.1), .id="run") %>% 
+    mutate(trade_off_strength = recode(run, '1' = 'weak', '2' = 'mid', '3' = 'strong', '4' = 'weak', '5' = 'mid', '6' = 'strong', '7' = 'weak', '8' = 'mid', '9' = 'strong'),
+         trait_value = recode(run, '1' = 'low', '2' = 'low', '3' = 'low', '4' = 'mid', '5' = 'mid', '6' = 'mid', '7' = 'high', '8' = 'high', '9' = 'high'),
+           trait = i
+           )
+  i <- i+1
+} 
+
+tidy_interpolations10 <- rbind(interpolations10[[1]], interpolations10[[2]], interpolations10[[3]], interpolations10[[4]]) %>% 
+  mutate(
+    trait = recode(trait, '1' = 'LMA & LL', '2' = 'N & Amax', '3' = 'WD & Mortality', '4' = 'WD & Wood Turnover')
+  ) %>%
+  select(-run)
+```
+
+merge with totals to plot STLs up to 0.05m
+```{r}
+all_tradeoff_totals <- tibble(bind_rows(lma_bkl2_totals, n_blf5_totals, wd_bks2_totals, wd_bdi2_totals)) %>%
+  mutate(
+    my_label = find_closest(round(time, 2), at = c(1, 5))
+  )
+
+tradeoff_totals_interpolations10 <- rbind(all_tradeoff_totals, tidy_interpolations10)
+
+tradeoff_totals_interpolations10_plot <- 
+  tradeoff_totals_interpolations10 %>%
+  filter(diameter_stem_av <= 0.1) %>%
+  ggplot(aes(diameter_stem_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(limits=c(0.001, 10.0), name = "stem diameter (m)", labels = scales::label_number(accuracy = 0.001)) +
+  scale_y_log10(limits=c(0.01, 100.0), name = "density " ~ (m^2), labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait)
+
+
+tradeoff_stls_visuals = (lma_ll_tradeoff | amax_resp_tradeoff | wd_di_tradeoff | wd_ks_tradeoff) / (tradeoff_totals_interpolations10_plot) + plot_layout(heights = c(1, 4)) + plot_annotation(tag_levels = 'a')
+
+ggsave(tradeoff_stls_visuals, filename="../self-thinning/tradeoff_stls_interpolations.pdf", width=16, height=14)
+```
+
+WD...
+```{r}
+p1 = tradeoff_totals_interpolations10 %>%
+  filter(diameter_stem_av <= 0.1, trait == "WD & Wood Turnover", diameter_stem_av > 0.001) %>%
+  ggplot(aes(diameter_stem_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(name = "mean stem diameter (m)", labels = scales::label_number(accuracy = 0.001)) +
+  scale_y_log10(name = "density " ~ (m^2), labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_wrap(~factor(trade_off_strength, levels=c('weak','mid','strong')))
+
+p2 = tradeoff_totals_interpolations10 %>%
+  filter(diameter_stem_av <= 0.1, trait == "WD & Wood Turnover", diameter_stem_av > 0.001) %>%
+  ggplot(aes(area_leaf_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(name = "leaf area " ~ (m^2), labels = scales::label_number(accuracy = 0.001)) +
+  scale_y_log10(name = "density " ~ (m^2), labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_wrap(~factor(trade_off_strength, levels=c('weak','mid','strong')))
+
+p3 = tradeoff_totals_interpolations10 %>%
+  filter(diameter_stem_av <= 0.1, trait == "WD & Wood Turnover", diameter_stem_av > 0.001) %>%
+  ggplot(aes(mass_above_ground_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(name = "mean AGB " ~ (kg/m^3), labels = scales::label_number(accuracy = 0.001)) +
+  scale_y_log10(name = "density " ~ (m^2), labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_wrap(~factor(trade_off_strength, levels=c('weak','mid','strong')))
+
+p4 = tradeoff_totals_interpolations10 %>%
+  filter(diameter_stem_av <= 0.1, trait == "WD & Wood Turnover") %>%
+  ggplot(aes(height_av, density, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_x_log10(name = "mean height (m)", labels = scales::label_number(accuracy = 0.001)) +
+  scale_y_log10(name = "density " ~ (m^2), labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_wrap(~factor(trade_off_strength, levels=c('weak','mid','strong')))
+
+WD_plots = p1 + p2 + p3 + p4
+ggsave(WD_plots, filename="../self-thinning/WD_plots.pdf", width=16, height=8)
+
+WD_height_time = all_tradeoff_totals %>%
+  filter(time > 0.1, trait == "WD & Wood Turnover", diameter_stem_av > 0.001) %>%
+  ggplot(aes(time, height_av, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_y_log10(limits=c(0.01, 100.0), name = "mean height (m)", labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_grid(trait~factor(trade_off_strength, levels=c('weak','mid','strong')))
+
+ggsave(WD_height_time, filename="../self-thinning/WD_height_time.pdf", width=16, height=8)
+
+tradeoff_totals_interpolations10 %>%
+  filter(time > 0.1, trait == "WD & Wood Turnover", diameter_stem_av > 0.001) %>%
+  ggplot(aes(time, diameter_stem_av, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_y_log10(labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_grid(trait~factor(trade_off_strength, levels=c('weak','mid','strong')))
+
+p5 = tradeoff_totals_interpolations10 %>%
+  filter(trait == "WD & Wood Turnover", diameter_stem_av > 0.001, area_leaf_av > 0.05) %>%
+  ggplot(aes(time, area_leaf_av, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_y_log10(name = "mean leaf area " ~ (m^2), labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_wrap(~factor(trade_off_strength, levels=c('weak','mid','strong')))
+
+p6 = tradeoff_totals_interpolations10 %>%
+  filter(trait == "WD & Wood Turnover", diameter_stem_av > 0.001, mass_above_ground_av > 0.01) %>%
+  ggplot(aes(time, mass_above_ground_av, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_y_log10(name = "mean AGB " ~ (kg/m^3), labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_wrap(~factor(trade_off_strength, levels=c('weak','mid','strong')))
+
+p7 = tradeoff_totals_interpolations10 %>%
+  filter(trait == "WD & Wood Turnover", diameter_stem_av > 0.001, height_av > 1.0) %>%
+  ggplot(aes(time, height_av, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_y_log10(name = "mean height (m)", labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_wrap(~factor(trade_off_strength, levels=c('weak','mid','strong')))
+
+p8 = all_tradeoff_totals %>%
+  filter(density > 1E-04, time > 1, trait == "WD & Wood Turnover", diameter_stem_av<=0.1) %>%
+  ggplot(aes(time, density, col = trait_value)) + 
+    geom_line() +
+    scale_y_log10() +
+    theme_classic(base_size = 18) +
+    facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait)
+
+WD_other_vars = p5 + p6 + p7 + p8
+ggsave(WD_other_vars, filename="../self-thinning/WD_other_vars.pdf", width = 16, height = 12)
+```
+
+BAAD data
+```{r}
+baad_data <- read.csv("data/baad_data.csv", header = TRUE) %>%
+  mutate(
+    area_leaf = a.lf,
+    height = h.t,
+    mass_above_ground = m.so,
+    mass_heartwood = m.sh,
+    mass_sapwood = m.ss,
+    time = age,
+    diameter_stem = d.bh,
+    node = 1,
+    species = 1
+  )
+
+baad_data_dictionary <- read.csv("../self-thinning/baad_dictionary.csv", header = TRUE) %>% rbind()
+baad_data_dictionary$label
+
+variable_names <- baad_data_dictionary$label
+```
+
+Grow a "typical" stand:  
+```{r}
+examplestand <- grow_tidy_expand_totals(a_dG2 = 30)
+
+example_stand_nodes <- examplestand$patch_expand$species %>% na.omit() %>%
+  group_by(node) %>%
+  mutate(age = time - min(time),
+         studyName = "plant model")
+```
+
+Format dataframes:
+```{r}
+vars <- c("area_leaf", "mass_above_ground", "mass_sapwood", "mass_heartwood")
+labels <- tibble(name = vars, label = c("leaf area", "above-ground mass", "sapwood mass", "heartwood mass"))
+
+baad_data <- baad_data %>% select(time, age, node, species, height, diameter_stem, vars) %>%
+  pivot_longer(vars) %>%
+  left_join(labels)
+
+example_stand_nodes <- example_stand_nodes %>% select(time, age, node, species, height, diameter_stem, vars) %>%
+  pivot_longer(vars) %>%
+  left_join(labels)
+```
+
+slightly different heights at times
+
+# 7. Plot individual against BAAD data
+```{r}
+height_plots <- ggplot() +
+  geom_point(data = baad_data, aes(height, value, group = node), col = "grey", size = 0.5) +
+  geom_line(data = example_stand_nodes, aes(height, value, group = node), col = "turquoise", size = 0.1) +
+  facet_wrap(~label, scales = "free") +
+  scale_x_log10(labels = scales::comma) +
+  scale_y_log10(labels = scales::comma) +
+  xlab("log height (m)") +
+  ylab("log value") +
+  theme_classic(base_size = 18)
+
+stem_diameter_plots <- ggplot() +
+  geom_point(data = baad_data, aes(diameter_stem, value, group = node), col = "grey", size = 0.5) +
+  geom_line(data = example_stand_nodes, aes(diameter_stem, value, group = node), col = "turquoise", size = 0.1) +
+  facet_wrap(~label, scales = "free") +
+  scale_x_log10(labels = scales::comma) +
+  scale_y_log10(labels = scales::comma) +
+  xlab("log stem diameter (m)") +
+  ylab("log value") +
+  theme_classic(base_size = 18)
+
+p1 = ggplot() +
+  geom_point(data = baad_data, aes(age, height, group = node), col = "grey", size = 0.5) +
+  geom_line(data = example_stand_nodes, aes(age, height, group = node), col = "turquoise", size = 0.1) +
+  scale_y_log10(labels = scales::comma) +
+  xlim(0, 250) +
+  ylab("log height (m)") +
+  theme_classic(base_size = 18)
+
+p2 = ggplot() +
+  geom_point(data = baad_data, aes(age, diameter_stem, group = node), col = "grey", size = 0.5) +
+  geom_line(data = example_stand_nodes, aes(age, diameter_stem, group = node), col = "turquoise", size = 0.1) +
+  scale_y_log10(labels = scales::comma) +
+  xlim(0, 250) +
+  ylab("log stem diameter (m)") +
+  theme_classic(base_size = 18)
+
+baad_plots = height_plots / stem_diameter_plots / (p1 | p2)
+
+ggsave(baad_plots, filename = "../self-thinning/baad_plots.pdf", width = 10, height = 15)
+```

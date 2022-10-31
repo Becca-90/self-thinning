@@ -79,7 +79,7 @@ slightly different heights at times
 ```{r}
 height_plots <- ggplot() +
   geom_point(data = baad_data, aes(height, value, group = node), col = "grey", size = 0.5) +
-  geom_line(data = example_stand_nodes, aes(height, value, group = node), col = "green", size = 0.1) +
+  geom_line(data = example_stand_nodes, aes(height, value, group = node), col = "turquoise", size = 0.1) +
   facet_wrap(~label, scales = "free") +
   scale_x_log10(labels = scales::comma) +
   scale_y_log10() +
@@ -87,7 +87,7 @@ height_plots <- ggplot() +
 
 stem_diameter_plots <- ggplot() +
   geom_point(data = baad_data, aes(diameter_stem, value, group = node), col = "grey", size = 0.5) +
-  geom_line(data = example_stand_nodes, aes(diameter_stem, value, group = node), col = "green", size = 0.1) +
+  geom_line(data = example_stand_nodes, aes(diameter_stem, value, group = node), col = "turquoise", size = 0.1) +
   facet_wrap(~label, scales = "free") +
   scale_x_log10(labels = scales::comma) +
   scale_y_log10() +
@@ -95,19 +95,21 @@ stem_diameter_plots <- ggplot() +
 
 p1 = ggplot() +
   geom_point(data = baad_data, aes(age, height, group = node), col = "grey", size = 0.5) +
-  geom_line(data = example_stand_nodes, aes(age, height, group = node), col = "green", size = 0.1) +
+  geom_line(data = example_stand_nodes, aes(age, height, group = node), col = "turquoise", size = 0.1) +
   scale_y_log10(labels = scales::comma) +
-  xlim(0, 500) +
+  xlim(0, 250) +
   theme_classic(base_size = 18)
+
 p2 = ggplot() +
   geom_point(data = baad_data, aes(age, diameter_stem, group = node), col = "grey", size = 0.5) +
-  geom_line(data = example_stand_nodes, aes(age, diameter_stem, group = node), col = "green", size = 0.1) +
+  geom_line(data = example_stand_nodes, aes(age, diameter_stem, group = node), col = "turquoise", size = 0.1) +
   scale_y_log10(labels = scales::comma) +
-  xlim(0, 500) +
+  xlim(0, 250) +
   theme_classic(base_size = 18)
+
 age_plots = p1 + p2
 
-ggsave(age_plots, filename = "../self-thinning/age_plots.pdf", width = 12, height = 5)
+ggsave(age_plots, filename = "../self-thinning/age_plots.pdf", width = 14, height = 5)
 ggsave(stem_diameter_plots, filename = "../self-thinning/stem_diameter_plots.pdf", width = 14, height = 10)
-ggsave(height_plots, filename = "../self-thinning/height_plots.pdf", width = 12, height = 10)
+ggsave(height_plots, filename = "../self-thinning/height_plots.pdf", width = 14, height = 10)
 ```
