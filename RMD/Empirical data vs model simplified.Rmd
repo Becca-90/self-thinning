@@ -32,68 +32,71 @@ source("R/find_closest_timestamps.R")
 plant_log_console()
 ```
 
-# Here we compare model output with empirical datasets
+# Compare model output with empirical data
+
 First, grow a stand - traits and other preset values not altered
 Initial seed rain is 200, a_l1 = 2.17 (height of plant with LA 1m^2), a_l2 = 0.5 (exponent of relationship between height and LA), lma = 0.1978791, rho = 608, hmat = 16.59587, B_lf1 = 0.8273474, B_lf2 = 0.5, recruitment decay = 5
+
+data is in units m^-2 (density) and m (stem diameter)
 ```{r}
-examplestand <- grow_tidy_expand_totals()
-stand_totals <- examplestand$patch_total  
+examplestand <- grow_tidy_expand_totals(a_dG2 = 30)
+stand_totals <- examplestand$patch_total  %>%
+  mutate(
+    study = "plant",
+    replicate = 1,
+    diameter_stem_av = (diameter_stem_av*100), #convert m to cm
+    density=density*10000                      #convert m^2 to ha
+   ) %>%
+  group_by(study, species, replicate)
+
+stand_totals %>%
+  filter(density > 0.01) %>%
+  ggplot(aes(diameter_stem_av, density)) +
+  geom_line() +
+  scale_x_log10(name = "mean stem diameter (cm)") +
+  scale_y_log10(name = "density (ha)", labels = scales::comma) +
+  theme_classic(base_size = 18)
 ```
 
 # Generate self-thinning lines from slope and intercept values obtained through statistical models of past papers
-
+data is log transformed and in units ha^-1 (density) and cm (stem diameter)
 ```{r}
-empirical_studies <- read.csv("self_thinning_data.csv", header = TRUE)
-```
-
-```{r}
-empirical_studies %>% group_by(study, species, replicate) %>% na.omit()
-
-```
-
-# Typical self thinning line using plant:
-```{r}
-examplestand <- grow_tidy_expand_totals(hmat = 15, a_dG2 = 30)
-
-# correct for units -- m to cm, m^2 to ha
-patch_totals <- examplestand$patch_total %>%
+empirical_studies <- read.csv("data/empirical_data.csv", header = TRUE) %>% 
+  group_by(study, species, replicate) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>%
   mutate(
-    diameter_stem_av = (diameter_stem_av*100),
-    density=density*10000,
-    study = "plant",
-    replicate = 1
-    ) %>%
-  group_by(study, species)
+    intercept = intercept %>% exp(), #get back un-transformed values, use log10 scale instead of data transformation
+    density = as.numeric(intercept)*diameter_stem_av^(slope)
+         ) %>%
+  filter(study != "brunet_navarro_et_al",
+         study != "kurinobu_miyaura")
+# remove intercept for kurinobu_miyaura so just use slope and min/max stem diameter vals to plot
 
-  ggplot(patch_totals, aes(diameter_stem_av, density)) +
-  geom_line() +
-  scale_x_log10(name = "Mean stem diameter (cm)") +
-  scale_y_log10(name = "Density (ha)") +
-  theme_classic(base_size = 18)
+empirical_studies %>%
+  ggplot(aes(diameter_stem_av, density, group = paste(study, species, replicate))) +
+    geom_line(col = "grey") +
+    scale_x_log10(labels = scales::comma) +
+    scale_y_log10(labels = scales::comma) +
+    theme_classic(base_size = 18) +
+    xlab("mean stem diameter (cm)") +
+    ylab("density (ha)")
 
-# plot STL
-typical_stand = examplestand$patch_total %>%
-  ggplot(aes(diameter_stem_av, density)) +
-  geom_line() +
-  scale_x_log10(name = "mean stem diameter (m)") +
-  scale_y_log10(name = "density " ~ (m^2), limits = c(0.001, 200), labels = scales::comma) +
-  theme_classic(base_size = 18)
-
-ggsave(typical_stand, filename = "../self-thinning/typical_stand.pdf", width = 6, height = 5)
+#fix_natural_log <- empirical_studies %>% filter(study == "comeau_et_al" | study == "condes_et_al" | study == "aguirre_rio_condes" | study == "forrester_et_al")
 ```
 
 # Plot self-thinning lines from compilation of datasets of major studies plotted with modelled STL using plant
 ```{r}
-plant_and_empirical = ggplot(mapping = aes(diameter_stem_av, density, group = paste(study, species, replicate))) +
+plant_and_empirical <- 
+  stand_totals %>% filter(density > 0.01, diameter_stem_av > 0.1) %>%
+  ggplot(mapping = aes(diameter_stem_av, density, group = paste(study, species, replicate))) +
+  geom_line(data = empirical_studies, col = "grey") +
+  geom_line(size = 1, col = "turquoise") +  
   geom_abline(intercept = 1, slope = -3/2, linetype = "dashed") +
-  geom_line(data = prev_studies, col = "grey") +
-  geom_line(data = patch_totals, size = 1, col = "black") + 
-  scale_x_log10(limits = c(0.1, 500), labels = scales::comma) +
+  scale_x_log10(labels = scales::comma) +
   scale_y_log10(labels = scales::comma) +
   theme_classic(base_size = 18) +
   xlab("mean stem diameter (cm)") +
   ylab("density (ha)")
-
 
 ggsave(plant_and_empirical, filename = "../self-thinning/plant_and_empirical.jpeg", width = 6, height = 5)
 plot_size_distribution(examplestand$patch_expand$species)
@@ -101,15 +104,108 @@ plot_size_distribution(examplestand$patch_expand$species)
 # x and y limits from each study
 ```
 
+
 ```{r}
-ggplot(mapping = aes(diameter_stem_av, density)) +
+plant_and_empirical <- 
+  stand_totals %>% filter(density > 0.01, diameter_stem_av > 0.1) %>%
+  ggplot(mapping = aes(diameter_stem_av, density, group = paste(study, species, replicate))) +
+  geom_line(data = prev_studies, col = "grey") +
+  geom_line(size = 1, col = "turquoise") +  
   geom_abline(intercept = 1, slope = -3/2, linetype = "dashed") +
-  geom_line(data = prev_studies) +
-  scale_x_log10(limits = c(0.1, 500), labels = scales::comma) +
-  scale_y_log10(labels = scales::comma) +
+  scale_x_log10(limits=c(0.15,100), labels = scales::comma) +
+  scale_y_log10(limits = c(0.001, 100), labels = scales::comma) +
   theme_classic(base_size = 18) +
   xlab("mean stem diameter (cm)") +
   ylab("density (ha)")
-
 ```
 
+
+```{r}
+empirical <- read.csv("data/empirical_data.csv", header = TRUE) %>% 
+  filter(study != "pretzsch_rio",
+         study != "pretzsch_mette",
+         study != "brunet_navarro_et_al",
+         study != "rivoire_le_moguedec",
+         study != "forrester_et_al") %>%
+  select(-min_n, -max_n) %>%
+  rename("xmin" = "min_dq",
+         "xmax" = "max_dq") %>%
+  mutate(xmin = log(xmin),
+         xmax = log(xmax))
+  
+# generate list of start and end points for each line
+d2 <- empirical %>%
+  mutate(id = row_number()) %>%
+  mutate(across(starts_with("x"), ~ slope * . + intercept, .names = "y{str_sub(.col, 2, 4)}")) %>%
+  pivot_longer(starts_with(c("x", "y"))) %>% 
+  separate(name, into = c("var", "position"), sep = 1) %>% 
+  pivot_wider(names_from = var)
+
+# data without stem diameter values to add in as abline?
+empirical_no_vals <- read.csv("data/empirical_data.csv", header = TRUE) %>%
+  subset(., study %in% c("pretzsch_rio", "brunet_navarro_et_al", "rivoire_le_moguedec", "pretzsch_mette")) %>%
+  select(-min_dq, - max_dq, -min_n, -max_n) %>%
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>%
+  mutate(density = as.numeric(intercept)*diameter_stem_av^(slope))
+
+d2 %>% 
+  ggplot(aes(x, y)) +
+  geom_line(aes(colour = factor(id))) +
+  theme_classic() +
+  xlab("log mean stem diameter (cm)") +
+  ylab("log density (ha)") +
+  theme(legend.position="none")
+
+stand_totals_log_vals <- stand_totals %>% 
+  filter(density > 0.01, diameter_stem_av > 0.1) %>%
+  mutate(density = log(density),
+         diameter_stem_av = log(diameter_stem_av))
+
+d2 %>%
+  mutate(
+    diameter_stem_av = x,
+    density = y
+  ) %>%
+  ggplot(aes(diameter_stem_av, density)) +
+  geom_line(aes(colour = factor(id))) +
+  geom_line(data = stand_totals_log_vals) +
+  theme_classic() +
+  xlab("log mean stem diameter (cm)") +
+  ylab("log density (ha)") +
+  theme(legend.position="none")
+```
+
+
+didn't work...
+```{r}
+install.packages("plotrix")
+library(plotrix)
+#loop through with base r plot?
+plot(1:4,1:4,ylim=c(0,4))
+abline(intercept, slope)
+segments(x0=2,x1=2)
+
+for (i in 1:(length((empirical_studies)-1))) { 
+abline(a = empirical_studies$intercept[i], b = empirical_studies$slope[i])
+ablineclip(x1 = empirical_studies$min_dq[i], x2 = empirical_studies$max_dq[i])
+i <- i + 1
+}
+```
+
+```{r}
+example <- tibble(slope = c(-1.52, -1.42, -1.56, -1.57, -1.57, -1.68, -1.67, -1.6, -1.73, -1.69, -1.79), intercept = c(12.07, 11.29, 12.21, 12.26, 12.14, 12.5, 12.58, 12.28, 12.72, 12.53, 12.29), xmin = c(9.00, 6.00, 6.00, 6.00, 6.00, 9.00, 7.00, 7.00, 7.00, 7.00, 18.00), xmax = c(26.00, 59.00, 53.00, 53.00, 53.00, 63.00, 67.00, 64.00, 64.00, 64.00, 50.00))
+
+example %>%
+  ggplot() +
+  geom_abline(intercept = example$intercept, slope = example$slope) +
+  xlim(example$min_dq, example$max_dq)
+
+plot<-ggplot(empirical_studies,aes(x=empirical_studies$diameter_stem_average,y=empirical_studies$density))
+for (i in 1:(length(empirical_studies)-1)) { 
+    plot=plot+geom_abline(slope = empirical_studies$slope[i], intercept = empirical_studies$intercept[i]) +
+      xlim(empirical_studies$min_dq[i], empirical_studies$max_dq[i])
+    i <- i + 1
+}
+
+print(plot)
+```

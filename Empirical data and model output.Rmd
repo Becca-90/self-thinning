@@ -330,6 +330,16 @@ prev_studies <- as_tibble(bind_rows(fitted_condes, fitted_trouve, fitted_riv_mog
   mutate(replicate = replace_na(replicate, 1),
          density=density/10000,
          diameter_stem_av = diameter_stem_av/100)
+
+prev_studies %>% 
+  ggplot(aes(diameter_stem_av, density, group = paste(species, replicate))) +
+    geom_line() +
+    scale_x_log10(labels = scales::comma) +
+    scale_y_log10(labels = scales::comma) +
+    theme_classic()
+
+         #density=density/10000,
+         #diameter_stem_av = diameter_stem_av/100)
 ```
 
 # Typical self thinning line using plant:
@@ -343,9 +353,10 @@ patch_totals <- examplestand$patch_total %>%
     ) %>%
   group_by(study, species)
 
-ggplot(patch_totals, aes(diameter_stem_av, density)) +
+patch_totals %>% filter(density>0.001) %>%
+ggplot(aes(diameter_stem_av, density)) +
   geom_line() +
-  scale_x_log10(name = "Mean stem diameter (cm)") +
+  scale_x_log10(limits = c(0.001, 1), name = "Mean stem diameter (cm)") +
   scale_y_log10(name = "Density (ha)") +
   theme_classic(base_size = 18)
 
