@@ -246,14 +246,6 @@ hmat_expand <- hmat_runs %>% map_dfr(~.x$patch_expand$species, .id = "run")
 hmat_expand %>% filter(run == 1) %>% plot_size_distribution()
 ```
 
-Trait comparison 4: 
-Wood Density
-
-Values:
-```{r}
-
-```
-
 
 # Plotting LA and biomass over time
 -> are there differences? how big? where?

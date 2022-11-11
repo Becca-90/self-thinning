@@ -12,8 +12,8 @@ library(scatterplot3d)
 ```
 
 ```{r}
-austraits <- read.csv("austraits-3.0.2/traits.csv", header = TRUE)
-woodytraits <- read.csv("austraits-3.0.2/woodiness_2022.03.19.csv", header = TRUE)
+austraits <- read.csv("data/traits.csv", header = TRUE)
+woodytraits <- read.csv("data/woodiness_2022.03.19.csv", header = TRUE)
 sort(unique(austraits$trait_name))
 
 austraits <- woodytraits %>% select(taxon_name, woodiness_recoded) %>% right_join(austraits) %>% mutate(ID = row_number())

@@ -172,6 +172,55 @@ hmats_birthrates_stls = hmats_seedmass_totals %>%
 ggsave(hmats_birthrates_stls, filename = "../self-thinning/hmats_seedmass_stls.pdf", height = 6, width = 12)
 ```
 
+# Austraits data
+```{r}
+austraits <- read.csv("data/traits.csv", header = TRUE)
+woodytraits <- read.csv("data/woodiness_2022.03.19.csv", header = TRUE)
+sort(unique(austraits$trait_name))
+
+austraits <- woodytraits %>% select(taxon_name, woodiness_recoded) %>% right_join(austraits) %>% mutate(ID = row_number())
+```
+
+
+```{r}
+wood_density_vals <- austraits %>% 
+  filter(trait_name == "wood_density", woodiness_recoded == "woody") %>% 
+  mutate(ID = row_number())
+
+leaf_n_vals <- austraits %>% 
+  filter(trait_name == "leaf_N_per_area", woodiness_recoded == "woody") %>% 
+  mutate(ID = row_number())
+
+lma_vals <- austraits %>% 
+  filter(trait_name == "specific_leaf_area", woodiness_recoded == "woody") %>%
+  mutate(leaf_mass_area = 1/(as.numeric(value)))
+
+seed_mass_vals <- austraits %>% 
+  filter(trait_name == "seed_mass", woodiness_recoded == "woody") %>% 
+  mutate(ID = row_number())
+
+## 1/"specific_leaf_area" = LMA
+```
+
+
+```{r}
+lma_trait_vals <- lma_vals$leaf_mass_area %>% as.numeric()
+lma <- quantile(lma_trait_vals, probs = c(0.1, 0.5, 0.9)/1)
+
+n_trait_vals <- leaf_n_vals$value %>% as.numeric()
+n <- quantile(n_trait_vals, probs = c(0.1, 0.5, 0.9)/1)
+
+wd_trait_vals <- wood_density_vals$value %>% as.numeric()
+wd <- quantile(wd_trait_vals, probs = c(0.1, 0.5, 0.9)/1)
+
+sm_trait_vals <- seed_mass_vals$value %>% as.numeric()
+sm <- quantile(sm_trait_vals, probs = c(0.1, 0.5, 0.9)/1)
+
+trait_values <- tibble(lma, n, wd, sm) %>% 
+  mutate(n_kg=n/1000,
+         wd_kg = wd*1000,
+         sm_kg = sm*10^-6)
+```
 
 # 3. Visualise trade-offs
 ```{r}
@@ -247,7 +296,6 @@ wd_ks_tradeoff <- ggplot(DI_KS, aes(rho, KS, linetype=tradeoff_strength)) +
   labs(linetype="Trade-off Strength")
 ```
 
-
 # 4. Vary trade-off strength
 self-thinning plots
 ```{r}
@@ -313,7 +361,6 @@ wd_bdi2_totals <- wd_bdi2_runs %>%
 wd_bdi2_totals$trade_off_strength <- factor(wd_bdi2_totals$trade_off_strength, levels=c("weak", "mid", "strong"))
 wd_bdi2_totals$trait_value <- factor(wd_bdi2_totals$trait_value, levels=c("low", "mid", "high"))
 ```
-
 
 Plot trade-off STLs with trade-off visuals above using facet wrap:
 ```{r}
@@ -562,7 +609,7 @@ tradeoff_stls_visuals = (lma_ll_tradeoff | amax_resp_tradeoff | wd_di_tradeoff |
 ggsave(tradeoff_stls_visuals, filename="../self-thinning/tradeoff_stls_interpolations.pdf", width=16, height=14)
 ```
 
-WD...
+WD plots
 ```{r}
 p1 = tradeoff_totals_interpolations10 %>%
   filter(diameter_stem_av <= 0.1, trait == "WD & Wood Turnover", diameter_stem_av > 0.001) %>%
@@ -673,6 +720,26 @@ p8 = all_tradeoff_totals %>%
 
 WD_other_vars = p5 + p6 + p7 + p8
 ggsave(WD_other_vars, filename="../self-thinning/WD_other_vars.pdf", width = 16, height = 12)
+```
+
+```{r}
+all_tradeoff_totals %>%
+  filter(density > 1E-04, time > 1, trait == "WD & Wood Turnover", diameter_stem_av<=0.1) %>%
+  ggplot(aes(time, diameter_stem_av, col = trait_value)) + 
+    geom_line() +
+    scale_y_log10() +
+    theme_classic(base_size = 18) +
+    facet_grid(factor(trade_off_strength, levels=c('weak','mid','strong'))~trait)
+
+all_tradeoff_totals %>%
+  filter(time > 0.1, trait == "WD & Wood Turnover", diameter_stem_av > 0.001) %>%
+  ggplot(aes(time, diameter_stem_av, col = trait_value, label=my_label)) + 
+  geom_line() +
+  geom_text(aes(label=my_label), hjust=0, vjust=0) +
+  scale_y_log10(labels = scales::label_number(accuracy = 0.001)) +
+  theme_classic(base_size = 18) +
+  theme(plot.title = element_text(hjust=0.5)) +
+  facet_grid(trait~factor(trade_off_strength, levels=c('weak','mid','strong')))
 ```
 
 BAAD data
