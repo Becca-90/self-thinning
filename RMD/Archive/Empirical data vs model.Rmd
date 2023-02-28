@@ -1,0 +1,680 @@
+---
+title: "Plotting empirical data against plant"
+output: html_document
+date: '2022-08-24'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results='hide')
+```
+
+```{r, eval = FALSE}
+remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+```
+
+```{r load libraries}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+library(ggrepel)
+library(scatterplot3d)
+source("R/grow_tidy_expand_totals.R")
+source("R/run_mypatch.R")
+source("R/thinning_plot.R")
+source("R/plot_stand.R")
+source("R/find_closest_timestamps.R")
+```
+
+```{r activate logger}
+plant_log_console()
+```
+
+
+
+# Here we compare model output with empirical datasets
+First, grow a stand - traits and other preset values not altered
+Initial seed rain is 200, a_l1 = 2.17 (height of plant with LA 1m^2), a_l2 = 0.5 (exponent of relationship between height and LA), lma = 0.1978791, rho = 608, hmat = 16.59587, B_lf1 = 0.8273474, B_lf2 = 0.5, recruitment decay = 5
+```{r}
+examplestand <- grow_tidy_expand_totals()
+stand_totals <- examplestand$patch_total  
+```
+
+# Generate self-thinning lines from slope and intercept values obtained through statistical models of past papers
+
+1. Trouve et al stand data with one species' slope and intercept values obtained from 4 different statistical models
+Intercept values are logged so take exponential
+```{r}
+fitted_trouve <- empirical_studies %>% filter(study == "trouve_et_al") %>%
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% # use max/min values for this
+  mutate(density = intercept*diameter_stem_av^as.numeric(slope),
+         study = "Trouve_et_al",
+         slope = as.numeric(slope)) %>%
+  select(-min_dq, -max_dq)
+
+```
+start/end points of empirical data (different stats methods?)
+
+"Of the two self-thinning methods applied to the Dq-Nallometry, SFA seemed to provide better upperNboundary estimates than OLS, but sometimesfailed as it was more demanding in terms of data(e.g., with E. camaldulensis). Of the three mortal-ity models, self-thinning estimates were more con-sistent and error distribution assumptions betterbehaved for NB GLM than for Poisson GLM andNLS."
+
+E. camaldulendis: 
+Dq (cm): 6-59, 9-26, 6-53,  
+N (tree/ha): 112-5513, 1195-5513, 171-5513 
+
+E. delegatensis: 
+Dq (cm): 7-67, 9-63, 7-64, 9-40,  
+N (tree/ha): 201/272/201/420 - 7259 
+
+E. nitens: 
+Dq (cm): 14-50, 18-50, 14-48,  
+N (tree/ha): 224-1145, 224-1156, 225-1445
+
+E. obliqua: 
+Dq (cm): 6-62, 8-62, 6-60,  
+N (tree/ha): 99-11475, 224-11100, 123-11475
+
+E. regnans: 
+Dq (cm): 3-114, 3-112, 3-111, 13-92,  
+N (tree/ha): 27-39288, 64-39288, 27-39288, 115-1225
+
+E. sieberi: 
+Dq (cm): 3-80, 8-47, 3-79, 9-35,  
+N (tree/ha): 49-14247, 478-9525, 49-14247, 364-4169
+
+
+2. Condes et al stand data with species slope and intercept values obtained for 2 species (pine, beech) in 6 locations (12 sets of slope values)
+Take natural log of intercepts
+Max stand denstiy index i.e. max # stems per hectare for reference QMD of 25cm
+```{r}
+fitted_condes <-
+  tibble(
+  slope = c(-1.545, -1.539, -2.226, -1.494, -1.592, -1.704, -1.918, -1.469, -2.244, -1.850, -1.831, -1.720),
+  intercept = c(190722, 154611, 1213554, 127071, 185631, 210150, 577162, 110800, 1615685, 341925, 428430, 254156), 
+  species = c(rep(1, 6), rep(2, 6)),
+  replicate = c(1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Condes_et_al")
+```
+start/end points of empirical data
+pine: 
+N (tree/ha): 247-3656, 144-4317, 80-5363, 59-3533, 42-3836, 80-4000,  
+Dq (cm): 
+11.2 37.6 
+10.1 50.1
+10.1 52.9 
+10.0 49.6 
+10.1 54.9 
+10.0 54.9
+
+beech: 
+N (tree/ha): 70-4730, 242-2913, 100-3623, 61-4838, 57-6057, 75-2600
+Dq (cm): 
+10.2-54.7
+10.4-44.7
+11.4-49.7
+10.1-54.7
+10.1-54.9
+10.2-53.8
+
+
+3. Weiskittel, Gould & Temesgen stand data
+Species slope and intercept values obtained for 3 species (Douglas-fir, Red alder, Western hemlock) using OLS & SFA methods
+Density: trees per ha, mean tree size: QMD -- both log transformed
+```{r}
+fitted_wgt <-
+  tibble(
+  slope = c(-1.2618, -1.5473, -1.1133, -1.2208, -1.6545, -1.7336), #OlS, SFA
+  intercept = c(10.7509, 11.2087, 9.7315, 10.8665, 12.1299, 13.0391) %>% exp(), #OlS, SFA
+  species = c(1, 1, 2, 2, 3, 3),
+  replicate = c(1, 2, 1, 2, 1, 2)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Weiskittel_Gould_Temesgen")
+```
+Douglas-fir
+N: 98.8 - 4694.9 (stems/ha)
+Dq: 4.6 - 73.6 (cm)
+
+Red alder
+N: 3660.5 - 37.1 
+Dq: 0.7 - 48.8
+
+Western hemlock
+N: 98.8 - 5782.1
+Dq: 7.7 - 43.7
+
+
+4. Rivoire and Le Moguedec
+Oak, beech and spruce modelled with stochastic frontier estimation & generalised
+optimisation (-spruce intercept n.a.) (5 STLs)
+```{r}
+fitted_riv_mog <-
+  tibble(
+  slope = c(-1.77, -1.76, -1.60, -1.86, -1.59),
+  intercept = c(12.22, 11.69, 11.78, 12.17, 11.99) %>% exp(),
+  species = c(1, 1, 2, 2, 3),
+  replicate = c(1, 2, 1, 2, 1)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Rivoire_Le_Moguedec")
+```
+start/end points of empirical data
+Not given??
+
+
+5. Gosper Euc data: E. salubris y = 4.15 - 1.33x
+Density per ha, QMD at 10cm above base ???
+```{r}
+fitted_gosper <- 
+  tibble(
+  slope = -1.33,
+  intercept = 4.15 %>% exp(), species = seq_len(1)
+  ) %>%
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Gosper")
+```
+start/end points of empirical data
+
+
+Hammond & Niklas
+A. alba - uses mass not stem diameter...
+--
+
+6. Eljatib & Weiskittel
+```{r}
+fitted_elj_weis <-
+  tibble(
+  slope = c(-1.2741, -1.4742, -1.33, -2.2396, -2.7194),
+  intercept = c(11.4787, 12.257, 11.71, 14.535, 16.352) %>% exp(),
+  species = 1,
+  replicate = c(1, 2, 3, 4, 5)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Eljatib_Weiskittel")
+```
+can't find...
+
+
+7. Pretzsch & Rio 2020
+N. spruce, S. pine, D-fir, E. beech, s. oak
+Central Europe long-term experimental plots
+```{r}
+fitted_pret_rio <-
+  tibble(
+  slope = c(-1.650, -1.789, -1.534, -1.887, -1.753),
+  intercept = c(12.560, 12.473, 11.811, 12.865, 12.254) %>% exp(),
+  species = seq_len(5)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Pretzsch_Rio")
+```
+not given...
+
+
+8. Andrews et. al. 2018
+Forests in Acadian Region, Northeastern North America. 15 species of soft and hardwood
+```{r}
+fitted_andrews <-
+  tibble(
+  slope = c(-1.96, -1.32, -1.63, -1.57, -1.28, -1.45, -1.38, -1.66, -1.68, -1.77, -1.62, -1.84, -1.39, -1.47, -1.33),
+  intercept = c(12.82, 10.98, 11.82, 11.78, 10.98, 11.61, 11.38, 11.88, 11.89, 12.09, 11.70, 12.39, 11.18, 11.57, 10.97) %>% exp(),
+  species = seq_len(15)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Andrews_et_al")
+```
+start/end points of empirical data (stems/ha, cm)
+Balsam Fir 55.00 24975.00, Dq: 4.48 29.57
+White Spruce: N: 74.35 - 12427.95, Dq: 4.49 36.87
+Black Spruce: N: 75.00 - 24225.75, Dq: 4.49 30.25
+Red Spruce: N: 59.48 - 18125.00, Dq: 4.53 36.94
+E. White Pine: N: 59.48 - 23391.00, Dq: 4.59 46.78
+N. White Cedar: N: 64 - 100.00 10879.22, Dq: 4.49 40.57
+E. Hemlock: N: 59.48 - 16512.10, Dq: 4.50 46.77
+Red Maple: N: 59.48 - 13026.49, Dq: 4.50 50.45
+Sugar Maple: N: 56.83 - 9010.63, Dq: 4.53 48.89
+Yellow Birch: N: 56.83 - 10641.28, Dq: 4.69 44.16
+Paper Birch: N: 75.00 - 19480.50, Dq: 4.56 35.47
+American Beech: N: 56.83 - 8254.79, Dq: 4.50 42.57
+White Ash: N: 59.31 - 7670.60, Dq: 4.50 46.93
+Bigtooth Aspen: N: 74.35 - 20905.75, Dq: 4.52 31.27
+N. Red Oak: N: 74.35 - 7713.93, Dq: 4.99 51.83 
+
+
+9. Aguirre, A., del Río, M., & Condés, S. 2018
+Pine species: P. halepensis Mill., P. nigra Arn., P. pinea L., P. pinaster Ait., and P. sylvestris L.
+(eqn 1: log(N-max) no climate, eqn 2b: log(N-max) with climate)
+```{r}
+fitted_ag_rio_cond <-
+  tibble(
+  slope = c(-1.7262, -1.7950, -2.1220, -2.2647, -1.8292, -1.7009, -1.7943, -1.8759, -1.9825, -1.7298),
+  intercept = c(12.607, 12.619, 13.385, 13.426, 12.317, 7.982, 12.642, 11.819, 13.341, 9.784) %>% exp(),
+  species = c(1, 1, 2, 2, 3, 3, 4, 4, 5, 5), 
+  replicate = c(1, 2, 1, 2, 1, 2, 1, 2, 1, 2)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Aguirre_Río_Condés")
+```
+start/end points of empirical data (stems/ha, cm)
+P. sylvestris
+78 - 4333, Dq: 
+10.0 49.6
+P. pinea
+29 - 3583, Dq: 
+10.0 49.7
+P. halepensis
+N: 14 - 2451, Dq:	
+10.0 48.9
+P. nigra
+N: 29 - 4623,	Dq: 
+10.0 49.7
+P. pinaster
+N: 50 - 4520,	Dq: 
+10.0 49.9
+
+
+10. Ge, F. et al 2017
+China fir (Cunninghamia lanceolata) pure stand plantations, !! varied site quality, mixed species
+```{r}
+fitted_ge <-
+  tibble(
+  slope = c(-4.298, -3.417, -2.865, -1.590, -1.694),
+  intercept = c(18.933, 16.950, 15.695, 12.365, 12.544) %>% exp(),
+  species = seq_len(5)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Ge_et_al")
+```
+start/end points of empirical data
+N (stems/ha): 104 - 6791
+Dq (sm): 5.7 - 25.0
+
+
+Stankova, T. V., & Diéguez-Aranda, U. 2017. Galicia (NW Spain) and Scots pine plantations in Bulgaria.
+Even-aged stands of four tree species
+Radiata pine (Pinus radiata), Scots pine (Pinus sylvestris), downy birch (Betula pubescens), English oak (Quercus robur)
+Use mean stem volume not diameter...
+```{r}
+#fitted_stan_dieg <-
+#  tibble(
+#  slope = c(-1.26, -1.03, -1.16, -0.71),
+#  intercept = c(3621, 6169, 11279, 2321),
+#  species = seq_len(4)
+#  ) %>% 
+#  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+#  mutate(density = intercept*diameter_stem_av^slope,
+#         study = "Stankova_Diéguez-Aranda")
+```
+
+
+Brunet-Navarro, P., Sterck, F. J., Vayreda, J., Martinez-Vilalta, J., & Mohren, G. M. J. (2016).
+The minimum tree density threshold where self-thinning take place was 732 trees ha−1 for P. halepensis, 600 trees ha−1 for P. nigra, 579 trees ha−1 for P. sylvestris and 581 trees ha−1 for 
+ALSO: slopes with varied climate!! Add these
+```{r}
+fitted_brunet <-
+  tibble(
+  slope = c(-0.533, -0.540, -0.589, -0.571),
+  intercept = c(14.85, 16.01, 18.31, 18.54) %>% exp(),
+  species = seq_len(4)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Brunet-Navarro_et_al")
+```
+annoying data...
+see: https://annforsci.biomedcentral.com/articles/10.1007/s13595-016-0585-y/tables/1
+
+
+Vospernik, S., & Sterba, H. 2015
+Norway spruce, European beech, Scots pine, European larch, oak, Austrian pine, silver fir, ash, stone pine and hornbeam. Sycamore, grey alder, birch, black locust and black alder are found on less than 100 plots.
+```{r}
+fitted_vospernik_sterba <-
+  tibble(
+  slope = c(-1.753, -1.633, -1.936, -1.750, -1.845, -1.500, -1.941, -1.800, -2.000, -1.939),
+  intercept = c(12.86, 12.41, 13.00, 12.77, 13.20, 11.62, 13.25, 12.62, 13.33, 13.22) %>% exp(), # only 0.5 quartile for birch and grey alder
+  species = seq_len(10)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Vospernik_Sterba")
+```
+Norway spruce	
+5.0	81.5
+8	10,185	
+
+Silver fir	
+6.5	84.8
+15	3608
+
+European larch	
+5.3	81.1
+8	4427
+
+Scots pine	
+5.1	49.8
+21	6741
+
+Austrian pine
+11.2	47.8
+57	5021
+
+Stone pine	
+6.5	67.4
+18	1266
+
+European beech	
+5.0	85.5
+9	6224
+
+Common oak
+5.1	79.5
+9	3663
+
+Hornbeam
+5.3	48.1
+22	8494
+
+Ash
+5.1	66.2
+12	6478
+
+Birch
+5.1	52.2
+19	5511
+
+Grey alder
+5.7	34.7
+42	5505
+
+Sycamore
+5.3	76.6
+9	3103
+
+Black locust
+5.2	24.6
+284	5238
+
+Black alder
+5.0	32.4
+49	4749
+
+
+Wang, N., Gao, J., Xu, S.-S., Zhang, W.-P., & Wang, G.-X. 2013
+Mixed montane, evergreen montane, deciduous montane, shrub. Mixed species.
+
+humid area: mean α = -1.74, predicted α =  -1.58
+semi-arid area: mean α = -1.27, predicted α =  -1.29
+arid area: mean α = -0.95, predicted α = -0.94
+
+intercepts??
+```{r}
+fitted_other <-
+  tibble(
+  slope = c(),
+  intercept = c() %>% exp(),
+  species = seq_len(4)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = )
+```
+
+11. Charru, M., Seynave, I., Morneau, F., Rivoire, M., & Bontemps, J.-D. 2012
+Pure and even-aged plots of 11 broadleaved and coniferous species
+```{r}
+fitted_charru_et_al <-
+  tibble(
+  slope = c(-1.809, -1.758, -1.911, -1.941, -1.615, -1.881, -1.653, -1.711, -1.878, -1.779, -1.646),
+  intercept = c(12.270, 12.138, 12.681, 12.950, 11.993, 12.512, 12.104, 11.982, 13.086, 12.621, 12.133) %>% exp(),
+  species = seq_len(11)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "Charru_et_al")
+```
+
+Pubescent oak
+N: 39.3	1,984.5
+Dq: 15.0	36.5
+
+Pedunculate oak	
+N: 39.3	2,205.0	
+Dq: 15.1	36.9
+
+Sessile oak	
+N: 39.3	2,544.5	
+Dq: 15.0	30.0
+
+Common beech	
+N: 14.1	2,710.3
+Dq: 16.0	40.0
+
+Scots pine	
+N: 39.3	3,301.0	
+Dq: 15.0	33.0
+
+Aleppo pine	
+N: 28.3	2,672.2	
+Dq: 15.0	40.0
+
+Corsican pine	
+N: 67.6	1,945.2	
+Dq: 18.0	49.8
+
+Maritime pine	
+N: 39.3	3,517.1	
+Dq: 16.0	37.0
+
+Norway spruce	
+N: 42.4	3,652.3	
+Dq: 15.0	45.0
+
+Silver fir	
+N: 70.7	2,908.0	
+Dq: 15.0	44.9
+
+Douglas fir
+N: 28.3	2,661.2	
+Dq: 20.0	49.6
+
+Tang, S., Meng, F.-R., & Meng, C. H. 1995
+```{r}
+fitted_other <-
+  tibble(
+  slope = c(),
+  intercept = c() %>% exp(),
+  species = seq_len(4)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = )
+```
+
+Forrester et al 2021
+Data from temperate Australian Eucalyptus plantations (436 plots), subtropical forests in China (88 plots), and temperate forests in Switzerland (1055 plots)
+https://www.sciencedirect.com/science/article/pii/S0378112721000256?via%3Dihub
+predicted self-thinning trajectories (results not shown)???
+```{r}
+fitted_other <-
+  tibble(
+  slope = c(),
+  intercept = c() %>% exp(),
+  species = seq_len(4)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = )
+```
+Abies alba	(15/2779) (10.8/62.7)
+Eucalyptus globulus	(131/1718)(6.2/46.9)
+Eucalyptus nitens	(100/1735)(13.1/47.5)
+Fagus sylvatica	(10/1664)(11.5/52.1)
+Fraxinus excelsior	 (8/946)(11.4/55.7)
+Larix decidua	(8/1769)(11.8/70.8)
+Picea abies	(19/3840)	(10.6/57.3)
+Pinus strobus	(29/1988)(15.5/61.7)
+Pinus sylvestris	(10/4814)(11.8/68.6)
+Pseudotsuga menziesii	(8/2500) (14.4/66.9)	
+Quercus petraea or Q. robur	(3/1700)(9/75.4)
+Subtropical China (507/3119) (5.5/22)
+
+Morris, Morris & Myerscough data: Ocimum basilicum (herb?)
+```{r}
+fitted_other <-
+  tibble(
+  slope = c(),
+  intercept = c() %>% exp(),
+  species = seq_len(4)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = )
+```
+
+Mixing effects on growth efficiency in mixed pine forests 
+José Riofrío, Miren del Río, Felipe Bravo
+```{r}
+fitted_riof_rio_brav <-
+  tibble(
+  slope = c(-1.789, -1.929),
+  intercept = c(12.801, 13.218) %>% exp(),
+  species = seq_len(2)
+  ) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>% 
+  mutate(density = intercept*diameter_stem_av^slope,
+         study = "riofrío_del_río_bravo")
+
+```
+start/end points of empirical data (trees/ha, cm)
+Mixed plots:
+Scots pine natural
+N: 14.2 - 1322.7 
+Dq: 9.8 - 50.7
+Maritime pine natural
+N: 19.2 - 1177.7 
+Dq: 10.3 - 41.6
+Scots pine plantation
+N:  88.4 - 1987.6 
+Dq: 8.8 - 35.8
+Maritime pine plantation
+N: 	28.3 - 1481.9
+Dq: 11.2 - 31.7
+
+N
+Total natural:87.1 - 1479.9 	   		
+Total plantation: 226.4 - 3087.5
+Dq
+Total natural: 11.7 - 39.5	                	          
+Total plantation: 10.7 - 33.6
+
+Pure plots:
+Scots pine natural
+N: 65.1 - 2893.0 
+Dq: 10.5 - 51.5
+Maritime pine natural
+N: 104.1 - 2291.8
+Dq: 10.0 - 46.1
+Scots pine plantation
+N: 240.5  - 3755.9 
+Dq: 8.9 - 32.5
+Maritime pine plantation
+N: 283.0 - 1955.8
+Dq: 10.7 - 33.5
+
+# Combine studies:
+```{r}
+prev_studies <- as_tibble(bind_rows(fitted_condes, fitted_gosper, fitted_trouve, fitted_riv_mog, fitted_wgt, fitted_elj_weis, fitted_ag_rio_cond, fitted_andrews, fitted_charru_et_al, fitted_ge, fitted_pret_rio, fitted_brunet, fitted_vospernik_sterba)) %>%
+  mutate(replicate = replace_na(replicate, 1))
+```
+
+# Typical self thinning line using plant:
+```{r}
+examplestand <- grow_tidy_expand_totals(a_dG2 = 30)
+
+# correct for units -- m to cm, m^2 to ha
+patch_totals <- examplestand$patch_total %>%
+  mutate(
+    diameter_stem_av = (diameter_stem_av*100),
+    density=density*10000,
+    study = "plant",
+    replicate = 1
+    ) %>%
+  group_by(study, species)
+
+  ggplot(patch_totals, aes(diameter_stem_av, density)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic(base_size = 18)
+  
+###  
+examplestand <- grow_tidy_expand_totals(hmat = 15, a_dG2 = 30)
+patch_totals <- examplestand$patch_total %>%
+  mutate(
+    study = "plant",
+    replicate = 1,
+    diameter_stem_av = (diameter_stem_av*100),
+    density=density*10000,
+    ) %>%
+  group_by(study, species) %>%
+  filter(density>0.001)
+
+# plot STL
+patch_totals %>%
+  ggplot(aes(diameter_stem_av, density)) +
+  geom_line() +
+  scale_x_log10(name = "mean stem diameter (cm)") +
+  scale_y_log10(name = "density (ha)", labels = scales::comma) +
+  theme_classic(base_size = 18)
+
+ggsave(typical_stand, filename = "../self-thinning/typical_stand.pdf", width = 6, height = 5)
+```
+
+# Plot self-thinning lines from compilation of datasets of major studies plotted with modelled STL using plant
+```{r}
+plant_and_empirical = ggplot(mapping = aes(diameter_stem_av, density, group = paste(study, species, replicate))) +
+  geom_line(data = prev_studies, col = "grey") +
+  geom_line(data = patch_totals, size = 1, col = "black") +
+  geom_abline(intercept = 5.3, slope = -3.8/2, linetype = "dashed") +
+  scale_x_log10(limits = c(0.1, 500), labels = scales::comma) +
+  scale_y_log10(labels = scales::comma) +
+  theme_classic(base_size = 18) +
+  xlab("log mean stem diameter (cm)") +
+  ylab("log density (ha)")
+
+
+ggsave(plant_and_empirical, filename = "../self-thinning/plant_and_empirical.jpeg", width = 6, height = 5)
+plot_size_distribution(examplestand$patch_expand$species)
+
+# x and y limits from each study
+```
+
+
+
+
+
+
+
+
+
+?? fitted_brunet 
+intercept = c(14.85, 16.01, 18.31, 18.54) %>% exp()
+
+Brunet-Navarro, P., Sterck, F. J., Vayreda, J., Martinez-Vilalta, J., & Mohren, G. M. J. (2016). Self-thinning in four pine species: An evaluation of potential climate impacts. Annals of Forest Science, 73(4), 1025–1034. https://doi.org/10.1007/s13595-016-0585-y
+
+?? fitted_gosper
+intercept = 4.15 %>% exp()
+
+Gosper, C. R., Yates, C. J., Cook, G. D., Harvey, J. M., Liedloff, A. C., McCaw, W. L., Thiele, K. R., & Prober, S. M. (2018). A conceptual model of vegetation dynamics for the unique obligate-seeder eucalypt woodlands of south-western Australia. Austral Ecology, 43(6), 681–695. https://doi.org/10.1111/aec.12613

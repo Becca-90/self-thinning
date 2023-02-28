@@ -1,0 +1,89 @@
+---
+title: "Untitled"
+output: html_document
+date: '2022-12-07'
+---
+
+```{r}
+devtools::load_all("~/Documents/GitHub/plant")
+```
+
+```{r}
+library(dplyr)
+library(tidyverse)
+```
+
+vcmax: photosynthetic capacity p50: 50% conductance lost/hydraulic failure ks: sapwood specific conductivity - controls p50, b, psi_crit c: shape of hydraulic vulnerability curve, controls p50 and psi_crit b: 37% conductivity psi_crit: lost 95% conductivity, controlled by ks, which controls p50 which controls b
+
+```{r}
+ctrl = scm_base_control()
+ctrl$schedule_eps <- 0.005
+
+p0 = scm_base_parameters("FF16w")
+p0$strategy_default$recruitment_decay <- 5  
+p0$strategy_default$a_l1 <- 2.17
+p0$strategy_default$a_l2 <- 0.5
+p0$strategy_default$hmat <- 12
+p0$strategy_default$a_dG1 = 5.5
+p0$strategy_default$a_dG2 = 20
+p0$strategy_default$a_f1 <- 0
+p0$max_patch_lifetime = 10
+  
+hyper_par_fn <- make_FF16_hyperpar(B_lf1 = 0.8273474, B_lf2 = 0.5, B_dI1 = 0, B_dI2 = 0, B_kl2 = 1.71, B_lf5 = 1, B_lf4 = 21000, B_ks2 = 0, latitude = 28.182)
+
+p1 <- expand_parameters(trait_matrix(c(0.1457419, 0.002381510, 606.8343, 0.000500000), c("lma", "narea", "rho", "omega")), p0, hyper_par_fn, mutant = FALSE, birth_rate_list = 200)
+env <- make_environment("FF16w", soil_initial_state = 0.5, rainfall = 1)
+  
+results <- build_schedule(p1, ctrl = ctrl, env = env)
+out <- run_scm_collect(results, ctrl=ctrl, env = env)
+```
+
+```{r}
+patch_tidy <- tidy_patch(out)
+  patch_expand <- FF16_expand_state(patch_tidy)
+  
+patch_total <-
+  patch_expand$species %>% 
+  integrate_over_size_distribution() %>%
+  mutate(
+    across(c(diameter_stem, area_stem, area_leaf, height, mass_above_ground), ~.x/density, 
+           .names = "{.col}_av")
+  )
+  
+patch_total %>%
+  filter(diameter_stem_av > 0.002) %>%
+ggplot(aes(diameter_stem_av, density)) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() -> a
+
+out$env %>%
+  tidy_env() %>%
+  pluck("soil_moist") -> soil_moist
+```
+
+```{r}
+patch_total %>%
+  left_join(soil_moist) %>%
+  ggplot(aes(x= time , y = soil_moist)) +
+  geom_line() -> b
+
+
+cowplot::plot_grid(a,b, ncol=1)
+```
+
+```{r}
+rainfalls <- c(0.6, 0.8, 1, 1.5, 2, 10)
+rainfall_wd_600 <- map_dfr(rainfalls, ~grow_under_rain(rainfall=.x), .id = "rainfall")
+```
+
+```{r}
+rainfall_wd_600 %>% 
+  filter(diameter_stem_av > 0.002) %>%
+  ggplot(aes(diameter_stem_av, density, col = factor(rainfall))) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic()
+```

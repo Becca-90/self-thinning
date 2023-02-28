@@ -1,0 +1,174 @@
+---
+title: "Empirical 2"
+output: html_document
+date: '2022-09-23'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results='hide')
+```
+
+```{r, eval = FALSE}
+remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+```
+
+```{r load libraries}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+library(ggrepel)
+library(scatterplot3d)
+source("R/grow_tidy_expand_totals.R")
+source("R/run_mypatch.R")
+source("R/thinning_plot.R")
+source("R/plot_stand.R")
+source("R/find_closest_timestamps.R")
+```
+
+```{r activate logger}
+plant_log_console()
+```
+
+Compare model output with empirical data
+
+# First, grow a stand
+Initial seed rain is 200, a_l1 = 2.17 (height of plant with LA 1m^2), a_l2 = 0.5 (exponent of relationship between height and LA), lma = 0.1457419, rho = 606.8343, no maturation height, B_lf1 = 0.8273474, B_lf2 = 0.5, recruitment decay = 5
+
+output is in units of m^-2 (density) and m (stem diameter)
+```{r}
+examplestand <- grow_tidy_expand_totals(a_dG2 = 30)
+stand_totals <- examplestand$patch_total  %>%
+  mutate(
+    study = "plant",
+    replicate = 1,
+    diameter_stem_av = (diameter_stem_av*100), #convert m to cm
+    density=density*10000                      #convert m^2 to ha
+   ) %>%
+  group_by(study, species, replicate)
+```
+
+# Plot empirical data limiting self-thinning lines to min and max stem diameter values
+```{r}
+# remove data with missing diameter values
+# log transform plant data to align with empirical data
+
+aguirre_et_al <- empirical %>% filter(study == "aguirre_rio_condes") %>% filter(replicate == 1) #using linear model results, replicate 1
+
+empirical <- read.csv("data/empirical_data.csv", header = TRUE) %>% 
+  filter(study != "pretzsch_rio",
+         study != "pretzsch_mette",
+         study != "brunet_navarro_et_al",
+         study != "rivoire_le_moguedec",
+         study != "forrester_et_al",
+         study != "kurinobu_miyaura",
+         study != "aguirre_rio_condes") %>%
+  select(-min_n, -max_n) %>%
+  rename("xmin" = "min_dq",
+         "xmax" = "max_dq") %>%
+  mutate(xmin = log(xmin),
+         xmax = log(xmax)) %>%
+  rbind(aguirre_et_al)
+
+# TO-DO: Remove from salaseljatib_weiskittel 14.535, 16.352 values
+
+# generate list of start and end points for each line and put into nice format
+d <- empirical %>%
+  mutate(id = row_number()) %>%
+  mutate(across(starts_with("x"), ~ slope * . + intercept, .names = "y{stringr::str_sub(.col, 2, 4)}")) %>%
+  pivot_longer(starts_with(c("x", "y"))) %>% 
+  separate(name, into = c("var", "position"), sep = 1) %>% 
+  pivot_wider(names_from = var)
+
+# want to add data missing stem diameter values using slope and intercept
+empirical_no_vals <- read.csv("data/empirical_data.csv", header = TRUE) %>%
+  subset(., study %in% c("pretzsch_rio", "rivoire_le_moguedec", "forrester_et_al")) %>%
+  select(-min_dq, - max_dq, -min_n, -max_n) %>%
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>%
+  mutate(density = as.numeric(intercept)*diameter_stem_av^(slope))
+
+empirical_no_vals %>%
+  ggplot(aes(diameter_stem_av, density, group = paste(study, species, replicate))) +
+  geom_line() +
+  scale_x_log10() +
+  scale_y_log10() +
+  theme_classic() +
+  theme(legend.position="none")
+
+stand_totals_log_vals <- stand_totals %>% 
+  mutate(density = log(density),
+         diameter_stem_av = log(diameter_stem_av)) %>%
+  filter(density > 0.0, diameter_stem_av > -1)
+
+# plot lines including plant output
+plant_empirical_plot <- 
+  d %>%
+  mutate(
+    diameter_stem_av = x,
+    density = y
+  ) %>%
+  filter(density > 0) %>%
+  ggplot(aes(diameter_stem_av, density, group = paste(study, species, replicate))) +
+  geom_line(colour = "grey") +
+  geom_line(data = stand_totals_log_vals, colour = "turquoise") +
+  theme_classic(base_size = 18) +
+  xlab("log mean stem diameter (cm)") +
+  ylab("log density (ha)") +
+  theme(legend.position="none")
+```
+
+# Generate self-thinning lines using only from slope and intercept values obtained through statistical models of past papers
+empirical data is log transformed and in units ha^-1 (density) and cm (stem diameter)
+```{r}
+empirical_studies_2 <- read.csv("data/empirical_data.csv", header = TRUE) %>% 
+  group_by(study, species, replicate) %>% 
+  expand_grid(diameter_stem_av = 10^seq(0,2)) %>%
+  mutate(
+    intercept = intercept %>% exp(), #get back un-transformed values, use log10 scale instead of data transformation
+    density = as.numeric(intercept)*diameter_stem_av^(slope)
+         ) %>%
+  filter(study != "brunet_navarro_et_al",
+         study != "kurinobu_miyaura")
+
+empirical_studies_2 %>%
+  ggplot(aes(diameter_stem_av, density, group = paste(study, species, replicate))) +
+    geom_line(col = "grey") +
+    geom_line(data = stand_totals_filtered) +
+    scale_x_log10(labels = scales::comma) +
+    scale_y_log10(labels = scales::comma) +
+    theme_classic(base_size = 18) +
+    xlab("mean stem diameter (cm)") +
+    ylab("density (ha)")
+
+#fix_natural_log <- empirical_studies %>% filter(study == "comeau_et_al" | study == "condes_et_al" | study == "aguirre_rio_condes" | study == "forrester_et_al")
+```
+
+# plot empirical data and plant output
+```{r}
+plant_and_empirical <- 
+  stand_totals %>% filter(density > 0.01, diameter_stem_av > 0.1) %>%
+  ggplot(mapping = aes(diameter_stem_av, density, group = paste(study, species, replicate))) +
+  geom_line(data = prev_studies, col = "grey") +
+  geom_line(size = 1, col = "turquoise") +  
+  geom_abline(intercept = 1, slope = -3/2, linetype = "dashed") +
+  scale_x_log10(limits=c(0.15,100), labels = scales::comma) +
+  scale_y_log10(limits = c(0.001, 100), labels = scales::comma) +
+  theme_classic(base_size = 18) +
+  xlab("mean stem diameter (cm)") +
+  ylab("density (ha)")
+```
+
+
+```{r}
+plot<-ggplot(empirical_studies,aes(x=empirical_studies$diameter_stem_average,y=empirical_studies$density))
+for (i in 1:(length(empirical_studies)-1)) { 
+    plot=plot+geom_abline(slope = empirical_studies$slope[i], 
+                          intercept = empirical_studies$intercept[i]) +
+      xlim(empirical_studies$min_dq[i], empirical_studies$max_dq[i])
+    i <- i + 1
+}
+
+print(plot)
+```

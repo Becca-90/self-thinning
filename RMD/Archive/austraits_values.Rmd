@@ -1,0 +1,106 @@
+---
+title: "austraits values"
+output: html_document
+date: '2022-07-18'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(scatterplot3d)
+```
+
+```{r}
+austraits <- read.csv("data/traits.csv", header = TRUE)
+woodytraits <- read.csv("data/woodiness_2022.03.19.csv", header = TRUE)
+sort(unique(austraits$trait_name))
+
+austraits <- woodytraits %>% select(taxon_name, woodiness_recoded) %>% right_join(austraits) %>% mutate(ID = row_number())
+```
+
+```{r}
+wood_density_vals <- austraits %>% 
+  filter(trait_name == "wood_density", woodiness_recoded == "woody") %>% 
+  mutate(ID = row_number())
+
+leaf_n_vals <- austraits %>% 
+  filter(trait_name == "leaf_N_per_area", woodiness_recoded == "woody") %>% 
+  mutate(ID = row_number())
+
+lma_vals <- austraits %>% 
+  filter(trait_name == "specific_leaf_area", woodiness_recoded == "woody") %>%
+  mutate(leaf_mass_area = 1/(as.numeric(value)))
+
+seed_mass_vals <- austraits %>% 
+  filter(trait_name == "seed_mass", woodiness_recoded == "woody") %>% 
+  mutate(ID = row_number())
+
+## 1/"specific_leaf_area" = LMA
+```
+
+Find quantiles for trait values
+round to something reasonable, not decimal
+quantile functions
+vector of probability
+x variable, p = c(three values I want)
+Log scale axes
+quantile(x, probs = seq(0.1, 0.5, 0.9)
+```{r}
+lma_trait_vals <- lma_vals$leaf_mass_area %>% as.numeric()
+lma <- quantile(lma_trait_vals, probs = c(0.1, 0.5, 0.9)/1)
+
+n_trait_vals <- leaf_n_vals$value %>% as.numeric()
+n <- quantile(n_trait_vals, probs = c(0.1, 0.5, 0.9)/1)
+
+wd_trait_vals <- wood_density_vals$value %>% as.numeric()
+wd <- quantile(wd_trait_vals, probs = c(0.1, 0.5, 0.9)/1)
+
+sm_trait_vals <- seed_mass_vals$value %>% as.numeric()
+sm <- quantile(sm_trait_vals, probs = c(0.1, 0.5, 0.9)/1)
+
+trait_values <- tibble(lma, n, wd, sm) %>% 
+  mutate(n_kg=n/1000,
+         wd_kg = wd*1000,
+         sm_kg = sm*10^-6)
+```
+
+
+Add plant data...
+```{r}
+leaf_n <- tibble(value = trait_values$n, count = 1)
+n_plot = ggplot(leaf_n_vals, aes(as.numeric(value))) + 
+  geom_histogram(binwidth = 0.05) +
+  geom_point(leaf_n, mapping = aes(value, count), col = "turquoise") +
+  scale_x_log10() + 
+  xlab("log Leaf Nitrogen " ~ (g/m^2)) +
+  theme_classic(base_size = 20)
+
+wood_density = tibble(value = trait_values$wd, count = 1)
+wd_plot = ggplot(wood_density_vals, aes(as.numeric(value))) + 
+  geom_histogram(binwidth = 0.02) + 
+  geom_point(wood_density, mapping = aes(value, count), col = "turquoise") +
+  scale_x_log10() +
+  xlab("log Wood Density " ~ (kg/m^3)) +
+  theme_classic(base_size = 20)
+
+seed_mass <- tibble(value = trait_values$sm, count = 1)
+sm_plot = ggplot(seed_mass_vals, aes(as.numeric(value))) + 
+  geom_histogram(binwidth=0.1) +
+  geom_point(seed_mass, mapping = aes((value), count), col = "turquoise") +
+  scale_x_log10(labels = scales::comma) + 
+  xlab("log Seed Mass (mg)") +
+  theme_classic(base_size = 20)
+
+lma <- tibble(value = trait_values$lma, count = 1)
+lma_plot = ggplot(lma_vals, aes(leaf_mass_area)) + 
+  geom_histogram(binwidth = 0.05) + 
+  geom_point(lma, mapping = aes(value, count), col = "turquoise") +
+  scale_x_log10() +
+  xlab("log LMA " ~ mg/mm^2) +
+  theme_classic(base_size = 20)
+
+austraits_plots = lma_plot + n_plot + wd_plot + sm_plot
+
+ggsave(austraits_plots, filename = "../self-thinning/austraits_plots.pdf")
+```

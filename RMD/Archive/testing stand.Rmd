@@ -1,0 +1,302 @@
+---
+title: "Model assessment"
+output: html_document
+date: '2022-07-28'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, results='hide')
+```
+
+```{r, eval = FALSE}
+#remotes::install_github("traitecoevo/plant", branch = "develop", force = TRUE)
+```
+
+```{r load libraries}
+library(plant)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(patchwork)
+library(purrr)
+library(ggrepel)
+library(scatterplot3d)
+source("R/grow_tidy_expand_totals.R")
+source("R/run_mypatch.R")
+source("R/thinning_plot.R")
+source("R/find_closest_timestamps.R")
+source("R/plot_stand.R")
+```
+
+```{r activate logger}
+plant_log_console()
+```
+
+# We will systematically analyse and assess all aspects of stand runs
+
+# 1. First -- testing integration step
+## Grow a stand - integrate with plant in-built trapezium function and with integration function and compare
+```{r}
+examplestand <- grow_tidy_expand_totals()
+
+# We removed integration part of grow_tidy_expand_totals function, checked integrations match up...
+
+# Patch 1 using integrate_over_size_distribution() function, Patch 2 using plant:::trapezium function directly: 
+
+patch_total1 <- 
+  examplestand$patch_expand$species %>% 
+  integrate_over_size_distribution() %>%
+    mutate(
+      # create average sizes
+      across(c(diameter_stem, area_stem, area_leaf, height, mass_above_ground), ~.x/density, 
+      .names = "{.col}_av")
+    )
+
+patch_total2 <- 
+  examplestand$patch_expand$species %>% 
+  na.omit() %>% 
+  filter(step>1) %>% 
+  group_by(step, species) %>% 
+  summarise(
+    density2 = -plant:::trapezium(height, density),
+    diameter_stem_av = -plant:::trapezium(height, density * diameter_stem)/ density2
+  )%>% ungroup()
+
+bind_cols(patch_total1 %>% select(density, diameter_stem_av), patch_total2)
+
+patch_total1 %>%
+  ggplot(aes(time, density)) +
+  geom_line()
+
+patch_total1 %>%
+  ggplot(aes(time, area_leaf)) +
+  geom_line()
+
+## both stands give same totals output
+```
+
+# 2. Test effect of model parameters on self-thinning:
+
+a_l1: Height of plant with leaf area of 1m^2 - default = 2.17
+a_l2: Exponent of relationship between height and leaf area - default = 0.5
+birth rate
+B_lf1: Potential CO2 photosynthesis at average leaf nitrogen, ν0, mol per day per m^2 - default = 0.8273474, max feasible value of 2
+B_lf2: Curvature of light response curve - default = 0.5
+B_dI1 (baseline rate for d_I): Intrinsic or growth-independent mortality per year
+
+Defaults here: seed rain = 200, a_l1 = 2.17 (height of plant with LA 1m^2), a_l2 = 0.5, lma = 0.1978791, rho = 608, hmat = 16, recruitment decay = 5, B_lf1 = 0.8273474, B_lf2 = 0.5, B_dI1 (varies rate of DI mortality) = 0
+
+Set a_dG1 = 5.5, a_dG2 = 20 
+
+## a_l1: Height of plant with leaf area of 1m^2 - default = 2.17
+
+Values: 1, 3, 5
+```{r}
+al1_runs <- c(1, 3, 5) %>% set_names(.) %>% map(~grow_tidy_expand_totals(a_l1 = .x, hmat = 10))
+
+al1_total <-
+  al1_runs %>% map_dfr(~.x$patch_total, .id = "trait_value")
+
+thinning_plot(al1_total, xvar = "diameter_stem_av", title = "Self-thinning -- varied a_l1")
+plot_stand(al1_total, xvar = "time", yvar = "area_leaf", "LA over time")
+```
+
+## a_l2: Exponent of relationship between height and leaf area - default = 0.5
+
+Values: 0.5, 1, 1.5  --  what are realistic max/min values? 3 broke it... 1.5 seems too high, trees get to HMAT iver 9m by 7-yr mark
+```{r}
+al2_runs <- c(0.5, 1, 1.5) %>% set_names(.) %>% map(~grow_tidy_expand_totals(a_l2 = .x, hmat = 10))
+
+al2_total <-
+  al2_runs %>% map_dfr(~.x$patch_total, .id = "trait_value")
+
+thinning_plot(al2_total, xvar = "diameter_stem_av", xlims = c(1e-04, 1e-01), ylims = c(1e-01, 1.5e2), ylab = "Stem Diameter (m)", title = "Self-thinning -- varied a_l2")
+
+plot_stand(al2_total, xvar = "time", yvar = "area_leaf", "LA over time")
+al2_runs[[1]]$patch_expand$species %>% plot_size_distribution()
+```
+
+## birth rate: set starting density (decays)
+
+- sharpness of approach to line varies as well as size where stand hits thinning line 
+- highest starting density hits line at lower average stem diameter, slower approach to max thinning rate -- leaf area not at total cover, higher starting density = hits max LA earlier and at higher max less biomass so less energy to maintain self, smaller effect of shading stress in smaller plants while diverting energy to reach HMAT? 
+- hit thinning line (where "fully" linear) when LA hits max (fully crowded)
+- also, lower density stands stay at close to zero LA for longer, e.g. birth rate of 10 
+- stays at ~0 for first couple of years?? 
+- still losing some individuals, but we effectively "removed" DI mortality, is anything else in the model controlling mortality or still effects of shading?
+- add option of labels for heights as well as timestamps?
+
+Values: 0.1, 1, 10, 100, 1000
+```{r}
+birth_rate_runs <- c(0.1, 1, 10, 100, 1000) %>% set_names(.) %>% map(~grow_tidy_expand_totals(birth_rate = .x, hmat = 10, a_dG2 = 30, schedule_eps = 0.0005))
+
+birth_rate_total <-
+  birth_rate_runs %>% map_dfr(~.x$patch_total, .id = "trait_value")
+
+birth_rates = thinning_plot(birth_rate_total, xvar = "diameter_stem_av", xlims = c(5e-4, 2e-01), xlab = "mean stem diameter (m)", ylims = c(1e-2, 2e3))
+
+#plot_stand(birth_rate_total, xvar = "time", yvar = "area_leaf", "LA over time")
+
+#plot_stand(birth_rate_total, xvar = "density", yvar = "area_leaf", "Density against LA")
+
+#birth_rate_runs[[1]]$patch_expand$species %>% plot_size_distribution()
+
+ggsave(birth_rates, filename = "../self-thinning/birth_rates_stl.jpeg", width = 8, height = 5)
+```
+
+## B_lf1: Potential CO2 photosynthesis at average leaf nitrogen, ν0, mol per day per m^2 - default = 0.8273474, max feasible value of 2
+
+Varies Amax (max assimilation):
+Amax = B_lf1 * (narea/narea_0)^B_lf5
+
+Values: 0.2, 0.8273474, 1.4, 2
+```{r}
+blf1_runs <- c(0.6, 0.8, 1, 1.5) %>% set_names(.) %>% map(~grow_tidy_expand_totals(B_lf1 = .x, hmat = 10))
+
+blf1_total <-
+  blf1_runs %>% map_dfr(~.x$patch_total, .id = "trait_value")
+
+thinning_plot(blf1_total, xvar = "diameter_stem_av", xlims = c(1e-04, 1), ylims = c(1e-01, 1.5e2), ylab = "Stem Diameter (m)", title = "Self-thinning -- varied B_lf1")
+
+plot_stand(blf1_total, xvar = "time", yvar = "area_leaf", "LA over time")
+blf1_runs[[1]]$patch_expand$species %>% plot_size_distribution()
+```
+
+## B_lf2: Curvature of light response curve - default = 0.5
+
+Values: 0.25, 0.5, 0.8
+```{r}
+blf2_runs <- c(0.25, 0.5, 0.8) %>% set_names(.) %>% map(~grow_tidy_expand_totals(B_lf2 = .x, hmat = 10))
+
+blf2_total <-
+  blf2_runs %>% map_dfr(~.x$patch_total, .id = "trait_value")
+
+thinning_plot(blf2_total, xvar = "diameter_stem_av", xlims = c(1e-04, 1e0), ylims = c(1e-01, 1.5e2), ylab = "Stem Diameter (m)", title = "Self-thinning -- varied B_lf2")
+
+plot_stand(blf2_total, xvar = "time", yvar = "area_leaf", "LA over time")
+blf2_runs[[1]]$patch_expand$species %>% plot_size_distribution()
+```
+
+## B_dI1 (baseline rate for d_I): Intrinsic or growth-independent mortality per year
+
+d_I = B_dI1 * (rho/rho_0)^(-B_dI2)
+
+Values: 0, 0.05, 0.1, 0.2
+```{r}
+BdI1_runs1 <- c(0, 0.01, 0.05, 0.1) %>% set_names(.) %>% map(~grow_tidy_expand_totals(B_dI1 = .x, hmat = 10)) #a_dG2 = 20
+
+BdI1_runs2 <- c(0, 0.01, 0.05, 0.1) %>% set_names(.) %>% map(~grow_tidy_expand_totals(B_dI1 = .x, a_dG2 = 30, hmat = 10)) 
+
+BdI1_total1 <-
+  BdI1_runs1 %>% map_dfr(~.x$patch_total, .id = "run")
+
+BdI1_total2 <-
+  BdI1_runs2 %>% map_dfr(~.x$patch_total, .id = "run")
+
+plot_stand(BdI1_total1, xvar = "time", yvar = "area_leaf", "LA over time")
+
+BdI1_runs[[4]]$patch_expand$species %>% plot_size_distribution()
+
+thinning_plot(BdI1_total1, xvar = "diameter_stem_av", xlims = c(0.01, 0.8), title = "Self-thinning under varied DI mortality")
+```
+
+
+# 3. Check key measures over time - total LA, biomass, heights, density
+```{r}
+plot_stand(dI_total, xvar = "time", yvar = "density", title="Total individuals over time")
+plot_stand(dI_total, xvar = "time", yvar = "area_leaf", title="Total Leaf Area over time")
+plot_stand(dI_total, xvar = "time", yvar = "height_av", title="Average height over time")
+plot_stand(dI_total, xvar = "time", yvar = "mass_total", title="Total mass over time")
+plot_stand(dI_total, xvar = "time", yvar = "diameter_stem_av", title="Average stem diameter over time")
+```
+
+# 4. checking new settings with more heights
+```{r}
+hmat_runs <- c(2, 5, 10, 15, 18, 20, 22) %>% set_names(.) %>% map(~grow_tidy_expand_totals(hmat = .x, B_dI1 = 0, a_dG2 = 30))
+
+hmat_total <- 
+  hmat_runs %>% map_dfr(~.x$patch_total, .id = "run")
+
+plot_stand(hmat_total, xvar = "time", yvar = "area_leaf", "LA over time")
+```
+
+
+## 1. woody plant trait values from Austraits database
+```{r}
+
+austraits <- read.csv("../self-thinning/austraits-3.0.2/traits.csv", header = TRUE)
+woodytraits <- read.csv("../self-thinning/austraits-3.0.2/woodiness_2022.03.19.csv", header = TRUE)
+
+sort(unique(austraits$trait_name)) # what traits are recorded?
+
+austraits <- woodytraits %>% select(taxon_name, woodiness_recoded) %>% right_join(austraits) %>% mutate(ID = row_number())
+
+wood_density_vals <- austraits %>% filter(trait_name == "wood_density", woodiness_recoded == "woody") %>% mutate(ID = row_number())
+leaf_N <- austraits %>% filter(trait_name == "leaf_N_per_area", woodiness_recoded == "woody") %>% mutate(ID = row_number())
+LMA_vals <- austraits %>% filter(trait_name == "???", woodiness_recoded == "woody")
+seed_mass_vals <- austraits %>% filter(trait_name == "seed_mass", woodiness_recoded == "woody", value < 100) %>% mutate(ID = row_number())
+## all_traits <- austraits %>% filter(trait_name == "wood_density" | trait_name == "leaf_N_per_area" | trait_name == "seed_mass", woodiness_recoded == "woody") %>% mutate(ID = row_number())
+
+## filter out woody stuff
+
+max(leaf_N$value)
+min(leaf_N$value)
+
+min(seed_mass$value)
+max(seed_mass$value)
+
+# plot range of trait values:
+
+ggplot(LMA_vals, aes(as.numeric(value))) + geom_histogram(binwidth = 0.25) + xlim(0, 25) + xlab("LMA g/m^2")
+ggplot(leaf_N, aes(as.numeric(value))) + geom_histogram(binwidth = 0.25) + xlim(0, 25) + xlab("N per unit leaf area g/m^2")
+ggplot(wood_density_vals, aes(as.numeric(value))) + geom_histogram(binwidth = 0.01) + xlab("Wood Density")
+ggplot(seed_mass_vals, aes(as.numeric(value))) + geom_histogram(binwidth=0.5) + xlab("Seed Mass")
+```
+
+## 2. BAAD data
+```{r}
+baad_data <- read.csv("../self-thinning/baad_data.csv", header = TRUE)
+baad_data_dictionary <- read.csv("../self-thinning/baad_dictionary.csv", header = TRUE) %>% rbind()
+baad_data_dictionary$label
+
+plant_stand <- grow_tidy_expand_totals(hmat = 10)
+plant_totals <- plant_stand$patch_total %>%
+  mutate(studyName = "plant model",
+         age = time,
+         a.lf = area_leaf,
+         d.bh = diameter_stem,
+         m.lf = mass_leaf) %>%
+  group_by(studyName)
+
+## "light environment" = light, "age" = age, "leaf area" = a.lf, "height" = h.t, "stem area at base/breast height/crown base" = a.stba/a.stbh/a.stbc, "dbh" = d.bh, "leaf mass" = m.lf, "total mass" = m.to, "wood density" = r.st, "leaf mass per area" = ma.ilf, "aboveground mass" = m.so, "leaf [nitrogen]" = n.lf
+```
+
+age vs LA (a.lf = LA of whole plant)
+```{r}
+ggplot() +
+  geom_point(data = baad_data, aes(age, ), show.legend = FALSE) +
+  geom_line(data = plant_totals, aes(age, ), col = "red") + 
+  xlim(0.1, 105) +
+  ylim(0.1, 1000) +
+  theme_classic()
+```
+
+DBH vs age
+```{r}
+ggplot() +
+  geom_point(data = baad_data, aes(age, d.bh), show.legend = FALSE) +
+  geom_line(data = plant_totals, aes(age, d.bh), col = "red") + 
+  xlim(0, 105) +
+  ylim(0, 2) +
+  theme_classic()
+```
+
+DBH vs LA
+```{r}
+ggplot() +
+  geom_point(data = baad_data, aes(a.lf, d.bh), show.legend = FALSE) +
+  geom_line(data = plant_totals, aes(a.lf, d.bh), col = "red") + 
+#  xlim() +
+#  ylim() +
+  theme_classic()
+```
