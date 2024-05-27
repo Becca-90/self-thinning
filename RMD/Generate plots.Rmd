@@ -2,29 +2,7 @@
 title: "Plots"
 output: pdf_document
 date: '2022-09-16'
-editor_options: 
-  chunk_output_type: console
 ---
-
-```{r}
-#install.packages("knitr")
-#install.packages("remotes")
-#install.packages("dplyr")
-#install.packages("tidyr")
-#install.packages("ggplot2")
-#install.packages("patchwork")
-#install.packages("magrittr")
-#install.packages('ggpubr')
-#install.packages("purrr")
-#install.packages("ggrepel")
-#install.packages("scatterplot3d")
-#install.packages("ggforce")
-#install.packages("RColorBrewer")
-#install.packages('imager')
-#install.packages("ggforce")
-#install.packages("magick")
-#install.packages("readxl")
-```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
