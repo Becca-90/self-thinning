@@ -2,7 +2,29 @@
 title: "Plots"
 output: pdf_document
 date: '2022-09-16'
+editor_options: 
+  chunk_output_type: console
 ---
+
+```{r}
+#install.packages("knitr")
+#install.packages("remotes")
+#install.packages("dplyr")
+#install.packages("tidyr")
+#install.packages("ggplot2")
+#install.packages("patchwork")
+#install.packages("magrittr")
+#install.packages('ggpubr')
+#install.packages("purrr")
+#install.packages("ggrepel")
+#install.packages("scatterplot3d")
+#install.packages("ggforce")
+#install.packages("RColorBrewer")
+#install.packages('imager')
+#install.packages("ggforce")
+#install.packages("magick")
+#install.packages("readxl")
+```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -19,25 +41,20 @@ library(tidyr)
 library(ggplot2)
 library(patchwork)
 library(magrittr)
-install.packages('imager')
-library(imager)
-install.packages('ggpubr')
+#library(imager)
 library(ggpubr)
 library(purrr)
 library(ggrepel)
 library(scatterplot3d)
+library(ggforce)
+library(RColorBrewer)
+library(readxl)
 source("R/grow_tidy_expand_totals.R")
 source("R/run_mypatch.R")
 source("R/thinning_plot.R")
 source("R/plot_stand.R")
 source("R/find_closest_timestamps.R")
 source("R/interpolate_to_stem_diameter.R")
-
-#install.packages("ggforce")
-library(ggforce)
-
-install.packages("RColorBrewer")
-library(RColorBrewer)
 ```
 
 ```{r activate logger}
@@ -47,6 +64,56 @@ plant_log_console()
 # 1. Intro plot
 typical stand + image panels + seed rain stls + empirical vs plant
 ```{r}
+# remove data with missing diameter values
+# log transform plant data to align with empirical data
+empirical <- readxl::read_xlsx("data/empirical_data.xlsx", na=c("", "NA")) %>% 
+  filter(
+    !(study %in% c(
+      "ge_et_al", # why?
+      "forrester_et_al", # why?
+      "pretzsch_mette") # why? 
+      ),
+    !(model %in% c(
+      # removing models why?
+      "OLS", "NB GLM", "POISSON GLM", "NLS", 
+      # removing models why?
+      "2B"))) %>%
+  select(-min_n, -max_n) %>%
+  # want to add data missing stem diameter values using slope and intercept
+  mutate(min_dq = ifelse(is.na(min_dq), 5, min_dq),
+         max_dq = ifelse(is.na(max_dq), 100, max_dq)) %>%
+  rename("xmin" = "min_dq",
+         "xmax" = "max_dq") %>%
+  mutate(xmin = log(xmin),
+         xmax = log(xmax))
+
+# generate list of start and end points for each line and put into nice format
+d <- empirical %>%
+  mutate(id = row_number()) %>%
+  mutate(across(starts_with("x"), ~ slope * . + intercept, .names = "y{stringr::str_sub(.col, 2, 4)}")) %>%
+  pivot_longer(starts_with(c("x", "y"))) %>% 
+  separate(name, into = c("var", "position"), sep = 1) %>% 
+  pivot_wider(names_from = var)
+
+# plot STLs including plant
+empirical_plot <- d %>%
+  mutate(
+    diameter_stem_av = exp(x)/100, #align to `plant` units
+    density = exp(y)/10000
+  ) %>%
+  filter(density > 0) %>%
+  ggplot(aes(diameter_stem_av, density, group = paste(study, species, replicate), label = paste(study, species, replicate))) +
+  geom_line(colour = "grey") +
+  geom_line(data = stand_totals2 %>% 
+  filter(density > 0.0001, diameter_stem_av > 0.01), colour = "#5ec962") +
+  scale_x_log10() +
+  scale_y_log10(label = scales::comma) +
+  theme_classic() +
+  xlab("stem diameter (m)") +
+  ylab("density (ha)") +
+  theme_classic(base_size = 18) +
+  theme(legend.position = "none")
+
 examplestand <- grow_tidy_expand_totals(a_dG2 = 30)
 patch_totals <- examplestand$patch_total %>%
   mutate(
@@ -116,12 +183,7 @@ intro_plot_base = ggarrange(plt4, plt3, labels = c("(c)", "(d)"))
 
 intro_plot = intro_plot_top / intro_plot_base
 
-ggsave(intro_plot, filename = "../self-thinning/plots/intro_plot.pdf", width = 12, height = 10)
-```
-
-
-```{r}
-
+#ggsave(intro_plot, filename = "../self-thinning/plots/intro_plot2.pdf", width = 12, height = 10)
 ```
 
 
@@ -165,7 +227,7 @@ hmat_stls = hmat_total %>%
   ggtitle("Self-thinning under varied HMAT")
 
 
-ggsave(hmat_stls, filename = "../self-thinning/hmat_stls.pdf", width = 10, height = 8)
+#ggsave(hmat_stls, filename = "../self-thinning/hmat_stls.pdf", width = 10, height = 8)
 
 hmats_seedmass_totals = bind_rows(seed_mass_totals, hmat_total)
 
@@ -187,16 +249,23 @@ hmats_birthrates_stls = hmats_seedmass_totals %>%
   facet_wrap(~run) +
   scale_color_manual(values = cols_10)
   
-ggsave(hmats_birthrates_stls, filename = "../self-thinning/plots/hmats_birthrates_stls.pdf", height = 6, width = 12)
+#ggsave(hmats_birthrates_stls, filename = "../self-thinning/plots/hmats_birthrates_stls.pdf", height = 6, width = 12)
 ```
 
 # Austraits data
 ```{r}
-austraits <- read.csv("data/traits.csv", header = TRUE)
-woodytraits <- read.csv("data/woodiness_2022.03.19.csv", header = TRUE)
-sort(unique(austraits$trait_name))
+#remotes::install_github("traitecoevo/austraits", dependencies = TRUE, upgrade = "ask")
+#library(austraits) 
+austraits_full <- load_austraits(version = "3.0.2", path = "data/austraits")
+austraits <- austraits_full$traits
 
-austraits <- woodytraits %>% select(taxon_name, woodiness_recoded) %>% right_join(austraits) %>% mutate(ID = row_number())
+#austraits <- read.csv("data/traits.csv", header = TRUE)
+woodytraits <- read.csv("data/woodiness_2022.03.19.csv", header = TRUE) %>% select(taxon_name, woodiness_recoded) 
+austraits <- woodytraits %>% right_join(austraits, relationship = "many-to-many") %>% mutate(ID = row_number())
+
+#austraits %>% filter(taxon_name == "Acanthus ebracteatus", woodiness_recoded == "woody") %>% View()
+#austraits[160490,] %>% View()
+#woodytraits %>% filter(taxon_name == "Suaeda maritima")
 ```
 
 ```{r}
@@ -216,7 +285,7 @@ seed_mass_vals <- austraits %>%
   filter(trait_name == "seed_mass", woodiness_recoded == "woody") %>% 
   mutate(ID = row_number())
 
-## 1/"specific_leaf_area" = LMA
+# 1/"specific_leaf_area" = LMA
 ```
 
 ```{r}
@@ -274,7 +343,6 @@ n_resp <- ggplot(amax_resp, aes(narea, resp, linetype=as.character(B_lf4))) +
   ylab("Respiration " ~(yr^-1)) + labs(colour="trade-off exponent") +
   theme(legend.position = "none")
 
-dgdgdg
 amax_resp_tradeoff <- ggplot(amax_resp, aes(resp, amax, linetype=as.character(B_lf5))) + 
   geom_line() +
   scale_x_log10() +
@@ -407,7 +475,7 @@ all_tradeoff_stls = all_tradeoff_totals %>%
 
 tradeoffs_visuals_stls = (lma_ll_tradeoff | amax_resp_tradeoff | wd_di_tradeoff | wd_ks_tradeoff) / (all_tradeoff_stls) + plot_layout(heights = c(1, 4)) + plot_annotation(tag_levels = 'a')
 
-ggsave(tradeoffs_visuals_stls, filename = "../self-thinning/tradeoffs_visuals_stls.pdf", width=16, height=10)
+#ggsave(tradeoffs_visuals_stls, filename = "../self-thinning/tradeoffs_visuals_stls.pdf", width=16, height=10)
 ```
 
 plot other STLs: density against leaf area, height, biomass
@@ -458,7 +526,7 @@ all_tradeoff_stls_la = tradeoff_totals_interpolations10 %>%
 
 stls_other_vars = all_tradeoff_stls_height + all_tradeoff_stls_biomass + all_tradeoff_stls_la
 
-ggsave(stls_other_vars, filename = "../self-thinning/stls_other_vars.pdf", width=24, height=6)
+#ggsave(stls_other_vars, filename = "../self-thinning/stls_other_vars.pdf", width=24, height=6)
 ```
 
 plot LA, AGB, height, stem size against time for all trade-offs
@@ -512,7 +580,7 @@ stem_time = all_tradeoff_totals %>%
     scale_color_manual(values = cols)
 
 la_agb_height_stem_time = la_time + agb_time + height_time + stem_time
-ggsave(la_agb_height_stem_time, filename = "../self-thinning/plots/la_agb_height_stem_time.pdf", width=16, height=12)
+#ggsave(la_agb_height_stem_time, filename = "../self-thinning/plots/la_agb_height_stem_time.pdf", width=16, height=12)
 ```
 
 Plot density over time long-term and to 0.1 m stem diameter interpolations
@@ -538,8 +606,8 @@ density_time_10cm = all_tradeoff_totals %>%
     facet_grid(trait_value~trait) +
     scale_color_manual(values = cols)
 
-ggsave(density_time, filename = "../self-thinning/plots/density_time.pdf")
-ggsave(density_time_10cm, filename = "../self-thinning/plots/density_time_10cm.pdf")
+#ggsave(density_time, filename = "../self-thinning/plots/density_time.pdf")
+#ggsave(density_time_10cm, filename = "../self-thinning/plots/density_time_10cm.pdf")
 ```
 
 Compare amount of variation within equal trait-value stands due to trade-off strength
@@ -614,7 +682,7 @@ all_tradeoff_stls = tradeoff_totals_interpolations10 %>%
   facet_grid(trait_value~trait) +
   scale_color_manual(values = cols)
 
-ggsave(all_tradeoff_stls, filename="../self-thinning/plots/stls_tradeoff_effect_with_trait_value.pdf", width=16, height=14)
+#ggsave(all_tradeoff_stls, filename="../self-thinning/plots/stls_tradeoff_effect_with_trait_value.pdf", width=16, height=14)
 ```
 
 # 5. Interpolations  ***********************
@@ -681,7 +749,7 @@ tradeoff_totals_interpolations10_plot <-
 
 tradeoff_stls_visuals = (lma_ll_tradeoff | amax_resp_tradeoff | wd_di_tradeoff | wd_ks_tradeoff) / (tradeoff_totals_interpolations10_plot) + plot_layout(heights = c(1, 4)) + plot_annotation(tag_levels = 'a')
 
-ggsave(tradeoff_stls_visuals, filename="../self-thinning/plots/tradeoff_stls_interpolations.pdf", width=18, height=14)
+#ggsave(tradeoff_stls_visuals, filename="../self-thinning/plots/tradeoff_stls_interpolations.pdf", width=18, height=14)
 ```
 
 WD other STLs (LA, AGB, H, stem diameter)
@@ -735,7 +803,7 @@ p4 = tradeoff_totals_interpolations10 %>%
   scale_color_manual(values = cols)
 
 WD_other_STLs = p1 + p2 + p3 + p4
-ggsave(WD_other_STLs, filename="../self-thinning/plots/WD_other_STLs.pdf", width=16, height=8)
+#ggsave(WD_other_STLs, filename="../self-thinning/plots/WD_other_STLs.pdf", width=16, height=8)
 ```
 
 WD variables over time (LA, AGB, height, stem diameter)
@@ -784,7 +852,7 @@ p8 = tradeoff_totals_interpolations10 %>%
   scale_color_manual(values = cols)
 
 WD_vars_over_time = p5 + p6 + p7 + p8
-ggsave(WD_vars_over_time, filename="../self-thinning/plots/WD_vars_over_time.pdf", width = 16, height = 12)
+#ggsave(WD_vars_over_time, filename="../self-thinning/plots/WD_vars_over_time.pdf", width = 16, height = 12)
 ```
 
 All stands diameter over time
@@ -898,7 +966,7 @@ p2 = ggplot() +
 
 baad_plots = height_plots / stem_diameter_plots / (p1 | p2)
 
-ggsave(baad_plots, filename = "../self-thinning/baad_plots.pdf", width = 10, height = 15)
+#ggsave(baad_plots, filename = "../self-thinning/baad_plots.pdf", width = 10, height = 15)
 ```
 
 
@@ -907,6 +975,16 @@ First, create generic stand
 ```{r}
 examplestand <- grow_tidy_expand_totals(a_dG2 = 30)
 stand_totals <- examplestand$patch_total  %>%
+  mutate(
+    study = "plant",
+    replicate = 1,
+    #diameter_stem_av = (diameter_stem_av*100), #convert m to cm
+    #density=density*10000                      #convert m^2 to ha
+   ) %>%
+  group_by(study, species, replicate)
+
+examplestand2 <- grow_tidy_expand_totals(a_dG2 = 30, B_kl2 = 1.73)
+stand_totals2 <- examplestand2$patch_total  %>%
   mutate(
     study = "plant",
     replicate = 1,
@@ -960,7 +1038,7 @@ empirical_plot <- d %>%
   filter(density > 0) %>%
   ggplot(aes(diameter_stem_av, density, group = paste(study, species, replicate), label = paste(study, species, replicate))) +
   geom_line(colour = "grey") +
-  geom_line(data = stand_totals %>% 
+  geom_line(data = stand_totals2 %>% 
   filter(density > 0.0001, diameter_stem_av > 0.01), colour = "#5ec962") +
   scale_x_log10() +
   scale_y_log10(label = scales::comma) +
@@ -1117,7 +1195,7 @@ p88 = tradeoff_totals_interpolations10 %>%
   scale_color_manual(values = cols)
 
 LA_vars_over_time = p55 + p66 + p77 + p88
-ggsave(LA_vars_over_time, filename="../self-thinning/plots/LA_vars_over_time.pdf", width = 16, height = 12)
+#ggsave(LA_vars_over_time, filename="../self-thinning/plots/LA_vars_over_time.pdf", width = 16, height = 12)
 
 tradeoff_totals_interpolations10 %>%
   filter(time < 20, trait == "LMA & LL", diameter_stem_av > 0.001) %>%
@@ -1176,5 +1254,5 @@ p888 = tradeoff_totals_interpolations10 %>%
   scale_color_manual(values = cols)
 
 N_vars_over_time = p555 + p666 + p777 + p888
-ggsave(N_vars_over_time, filename="../self-thinning/plots/N_vars_over_time.pdf", width = 16, height = 12)
+#ggsave(N_vars_over_time, filename="../self-thinning/plots/N_vars_over_time.pdf", width = 16, height = 12)
 ```

@@ -22,7 +22,7 @@ run_mypatch <- function (
   B_dI1 = 0,
   B_lf1 = 0.8273474, 
   B_lf2 = 0.5,
-  B_kl2 = 1.71, 
+  B_kl2 = 1.71, #1.71 original
   B_lf5 = 1, 
   B_lf4 = 21000, 
   B_dI2 = 0,
@@ -39,7 +39,7 @@ run_mypatch <- function (
   
 #  extra <- strategy_list(traits, p0, hyper_par_fn, birth_rate)
   
-  p1 <- expand_parameters(traits, p0, hyper_par_fn, mutant = FALSE, birth_rate_list = birth_rate)
+  p1 <- expand_parameters(traits, p0, hyper_par_fn, birth_rate_list = birth_rate)
 
   results <- build_schedule(p1, ctrl = ctrl)
   out <- run_scm_collect(results, ctrl=ctrl)
